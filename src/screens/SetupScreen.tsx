@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     View,
     Text,
@@ -20,23 +20,72 @@ interface SetupScreenProps {
 
 export const SetupScreen: React.FC<SetupScreenProps> = ({ onNext }) => {
     const { gameState, setNumberOfPlayers, setNumberOfImpostors } = useGame();
-    const [fadeAnim] = useState(new Animated.Value(0));
-    const [scaleAnim] = useState(new Animated.Value(0.8));
+    const fadeAnim = useRef(new Animated.Value(0)).current;
+    const scaleAnim = useRef(new Animated.Value(0.9)).current;
+    const titleAnim = useRef(new Animated.Value(0)).current;
+    const card1Anim = useRef(new Animated.Value(50)).current;
+    const card2Anim = useRef(new Animated.Value(50)).current;
+    const buttonAnim = useRef(new Animated.Value(50)).current;
+    const glowAnim = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
-        Animated.parallel([
-            Animated.timing(fadeAnim, {
+        // Secuencia de animaciones de entrada
+        Animated.sequence([
+            Animated.parallel([
+                Animated.timing(fadeAnim, {
+                    toValue: 1,
+                    duration: 600,
+                    useNativeDriver: true,
+                }),
+                Animated.spring(scaleAnim, {
+                    toValue: 1,
+                    friction: 8,
+                    tension: 40,
+                    useNativeDriver: true,
+                }),
+            ]),
+            Animated.timing(titleAnim, {
                 toValue: 1,
-                duration: 800,
+                duration: 400,
                 useNativeDriver: true,
             }),
-            Animated.spring(scaleAnim, {
-                toValue: 1,
-                friction: 8,
-                tension: 40,
-                useNativeDriver: true,
-            }),
+            Animated.stagger(150, [
+                Animated.spring(card1Anim, {
+                    toValue: 0,
+                    friction: 8,
+                    tension: 50,
+                    useNativeDriver: true,
+                }),
+                Animated.spring(card2Anim, {
+                    toValue: 0,
+                    friction: 8,
+                    tension: 50,
+                    useNativeDriver: true,
+                }),
+                Animated.spring(buttonAnim, {
+                    toValue: 0,
+                    friction: 8,
+                    tension: 50,
+                    useNativeDriver: true,
+                }),
+            ]),
         ]).start();
+
+        // Animación de glow pulsante
+        Animated.loop(
+            Animated.sequence([
+                Animated.timing(glowAnim, {
+                    toValue: 1,
+                    duration: 2000,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(glowAnim, {
+                    toValue: 0,
+                    duration: 2000,
+                    useNativeDriver: true,
+                }),
+            ])
+        ).start();
     }, []);
 
     const { numberOfPlayers, numberOfImpostors } = gameState.config;
@@ -48,7 +97,6 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onNext }) => {
     const decrementPlayers = () => {
         if (numberOfPlayers > 3) {
             setNumberOfPlayers(numberOfPlayers - 1);
-            // Ajustar impostores si es necesario
             if (numberOfImpostors >= numberOfPlayers - 1) {
                 setNumberOfImpostors(Math.max(1, numberOfPlayers - 2));
             }
@@ -64,8 +112,22 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onNext }) => {
         if (numberOfImpostors > 1) setNumberOfImpostors(numberOfImpostors - 1);
     };
 
+    const glowOpacity = glowAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [0.3, 0.8],
+    });
+
     return (
-        <LinearGradient colors={gradients.dark as [string, string]} style={styles.container}>
+        <LinearGradient
+            colors={['#0a0a1a', '#1a1a3a', '#0f0f2a']}
+            style={styles.container}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+        >
+            {/* Background decorative elements */}
+            <Animated.View style={[styles.bgCircle1, { opacity: glowOpacity }]} />
+            <Animated.View style={[styles.bgCircle2, { opacity: glowOpacity }]} />
+
             <ScrollView
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
@@ -76,102 +138,185 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onNext }) => {
                         { opacity: fadeAnim, transform: [{ scale: scaleAnim }] },
                     ]}
                 >
-                    <View style={styles.header}>
-                        <Text style={styles.emoji}>🎭</Text>
+                    {/* Header con efecto de glow */}
+                    <Animated.View style={[styles.header, { opacity: titleAnim }]}>
+                        <View style={styles.logoContainer}>
+                            <Animated.Text style={[styles.emoji, { opacity: glowOpacity }]}>
+                                🎭
+                            </Animated.Text>
+                            <View style={styles.glowEffect} />
+                        </View>
                         <Text style={styles.title}>IMPOSTOR</Text>
-                        <Text style={styles.subtitle}>¿Quién es el impostor?</Text>
-                    </View>
+                        <Text style={styles.subtitle}>¿Quién es el impostor entre nosotros?</Text>
+                    </Animated.View>
 
-                    <View style={styles.settingsContainer}>
-                        {/* Número de jugadores */}
-                        <View style={styles.settingCard}>
-                            <LinearGradient
-                                colors={['rgba(108, 92, 231, 0.3)', 'rgba(108, 92, 231, 0.1)']}
-                                style={styles.settingGradient}
-                            >
-                                <Text style={styles.settingIcon}>👥</Text>
+                    {/* Card de Jugadores */}
+                    <Animated.View
+                        style={[
+                            styles.settingCard,
+                            { transform: [{ translateY: card1Anim }] }
+                        ]}
+                    >
+                        <LinearGradient
+                            colors={['rgba(108, 92, 231, 0.15)', 'rgba(108, 92, 231, 0.05)']}
+                            style={styles.cardGradient}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                        >
+                            <View style={styles.cardHeader}>
+                                <View style={styles.iconBadge}>
+                                    <Text style={styles.settingIcon}>👥</Text>
+                                </View>
                                 <Text style={styles.settingLabel}>Jugadores</Text>
-                                <View style={styles.counterContainer}>
-                                    <TouchableOpacity
-                                        style={styles.counterButton}
-                                        onPress={decrementPlayers}
+                            </View>
+
+                            <View style={styles.counterContainer}>
+                                <TouchableOpacity
+                                    style={styles.counterButton}
+                                    onPress={decrementPlayers}
+                                    activeOpacity={0.7}
+                                >
+                                    <LinearGradient
+                                        colors={['#6C5CE7', '#5B4BD5']}
+                                        style={styles.counterButtonGradient}
                                     >
                                         <Text style={styles.counterButtonText}>−</Text>
-                                    </TouchableOpacity>
-                                    <View style={styles.counterValue}>
-                                        <Text style={styles.counterValueText}>{numberOfPlayers}</Text>
-                                    </View>
-                                    <TouchableOpacity
-                                        style={styles.counterButton}
-                                        onPress={incrementPlayers}
+                                    </LinearGradient>
+                                </TouchableOpacity>
+
+                                <View style={styles.counterValueContainer}>
+                                    <Text style={styles.counterValueText}>{numberOfPlayers}</Text>
+                                </View>
+
+                                <TouchableOpacity
+                                    style={styles.counterButton}
+                                    onPress={incrementPlayers}
+                                    activeOpacity={0.7}
+                                >
+                                    <LinearGradient
+                                        colors={['#6C5CE7', '#5B4BD5']}
+                                        style={styles.counterButtonGradient}
                                     >
                                         <Text style={styles.counterButtonText}>+</Text>
-                                    </TouchableOpacity>
+                                    </LinearGradient>
+                                </TouchableOpacity>
+                            </View>
+
+                            <Text style={styles.settingHint}>Mínimo 3 · Máximo 15</Text>
+                        </LinearGradient>
+                    </Animated.View>
+
+                    {/* Card de Impostores */}
+                    <Animated.View
+                        style={[
+                            styles.settingCard,
+                            { transform: [{ translateY: card2Anim }] }
+                        ]}
+                    >
+                        <LinearGradient
+                            colors={['rgba(255, 71, 87, 0.15)', 'rgba(255, 71, 87, 0.05)']}
+                            style={styles.cardGradient}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                        >
+                            <View style={styles.cardHeader}>
+                                <View style={[styles.iconBadge, styles.iconBadgeRed]}>
+                                    <Text style={styles.settingIcon}>🔪</Text>
                                 </View>
-                                <Text style={styles.settingHint}>Mínimo 3, Máximo 15</Text>
+                                <Text style={styles.settingLabel}>Impostores</Text>
+                            </View>
+
+                            <View style={styles.counterContainer}>
+                                <TouchableOpacity
+                                    style={styles.counterButton}
+                                    onPress={decrementImpostors}
+                                    activeOpacity={0.7}
+                                >
+                                    <LinearGradient
+                                        colors={['#FF4757', '#E84141']}
+                                        style={styles.counterButtonGradient}
+                                    >
+                                        <Text style={styles.counterButtonText}>−</Text>
+                                    </LinearGradient>
+                                </TouchableOpacity>
+
+                                <View style={[styles.counterValueContainer, styles.counterValueRed]}>
+                                    <Text style={styles.counterValueText}>{numberOfImpostors}</Text>
+                                </View>
+
+                                <TouchableOpacity
+                                    style={styles.counterButton}
+                                    onPress={incrementImpostors}
+                                    activeOpacity={0.7}
+                                >
+                                    <LinearGradient
+                                        colors={['#FF4757', '#E84141']}
+                                        style={styles.counterButtonGradient}
+                                    >
+                                        <Text style={styles.counterButtonText}>+</Text>
+                                    </LinearGradient>
+                                </TouchableOpacity>
+                            </View>
+
+                            <Text style={styles.settingHint}>
+                                Máximo {Math.floor(numberOfPlayers / 2)} impostor(es)
+                            </Text>
+                        </LinearGradient>
+                    </Animated.View>
+
+                    {/* Resumen visual */}
+                    <View style={styles.summaryContainer}>
+                        <View style={styles.summaryCard}>
+                            <LinearGradient
+                                colors={['rgba(93, 173, 226, 0.2)', 'rgba(93, 173, 226, 0.05)']}
+                                style={styles.summaryGradient}
+                            >
+                                <Text style={styles.summaryEmoji}>👤</Text>
+                                <Text style={styles.summaryValue}>{numberOfPlayers - numberOfImpostors}</Text>
+                                <Text style={styles.summaryLabel}>Tripulantes</Text>
                             </LinearGradient>
                         </View>
 
-                        {/* Número de impostores */}
-                        <View style={styles.settingCard}>
+                        <View style={styles.vsContainer}>
+                            <Text style={styles.vsText}>VS</Text>
+                        </View>
+
+                        <View style={styles.summaryCard}>
                             <LinearGradient
-                                colors={['rgba(255, 71, 87, 0.3)', 'rgba(255, 71, 87, 0.1)']}
-                                style={styles.settingGradient}
+                                colors={['rgba(255, 71, 87, 0.2)', 'rgba(255, 71, 87, 0.05)']}
+                                style={styles.summaryGradient}
                             >
-                                <Text style={styles.settingIcon}>🔪</Text>
-                                <Text style={styles.settingLabel}>Impostores</Text>
-                                <View style={styles.counterContainer}>
-                                    <TouchableOpacity
-                                        style={[styles.counterButton, styles.impostorButton]}
-                                        onPress={decrementImpostors}
-                                    >
-                                        <Text style={styles.counterButtonText}>−</Text>
-                                    </TouchableOpacity>
-                                    <View style={[styles.counterValue, styles.impostorValue]}>
-                                        <Text style={styles.counterValueText}>{numberOfImpostors}</Text>
-                                    </View>
-                                    <TouchableOpacity
-                                        style={[styles.counterButton, styles.impostorButton]}
-                                        onPress={incrementImpostors}
-                                    >
-                                        <Text style={styles.counterButtonText}>+</Text>
-                                    </TouchableOpacity>
-                                </View>
-                                <Text style={styles.settingHint}>
-                                    Máx: {Math.floor(numberOfPlayers / 2)} impostor(es)
+                                <Text style={styles.summaryEmoji}>🔪</Text>
+                                <Text style={[styles.summaryValue, { color: colors.impostorRed }]}>
+                                    {numberOfImpostors}
+                                </Text>
+                                <Text style={styles.summaryLabel}>
+                                    {numberOfImpostors === 1 ? 'Impostor' : 'Impostores'}
                                 </Text>
                             </LinearGradient>
                         </View>
                     </View>
 
-                    {/* Resumen */}
-                    <View style={styles.summaryContainer}>
-                        <View style={styles.summaryItem}>
-                            <Text style={styles.summaryValue}>{numberOfPlayers - numberOfImpostors}</Text>
-                            <Text style={styles.summaryLabel}>Tripulantes</Text>
-                        </View>
-                        <Text style={styles.summaryDivider}>vs</Text>
-                        <View style={styles.summaryItem}>
-                            <Text style={[styles.summaryValue, { color: colors.impostorRed }]}>
-                                {numberOfImpostors}
-                            </Text>
-                            <Text style={styles.summaryLabel}>
-                                {numberOfImpostors === 1 ? 'Impostor' : 'Impostores'}
-                            </Text>
-                        </View>
-                    </View>
-
-                    <TouchableOpacity style={styles.continueButton} onPress={onNext}>
-                        <LinearGradient
-                            colors={gradients.primary as [string, string]}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 0 }}
-                            style={styles.continueButtonGradient}
+                    {/* Botón continuar */}
+                    <Animated.View style={{ transform: [{ translateY: buttonAnim }] }}>
+                        <TouchableOpacity
+                            style={styles.continueButton}
+                            onPress={onNext}
+                            activeOpacity={0.8}
                         >
-                            <Text style={styles.continueButtonText}>Ingresar Nombres</Text>
-                            <Text style={styles.continueButtonIcon}>→</Text>
-                        </LinearGradient>
-                    </TouchableOpacity>
+                            <LinearGradient
+                                colors={['#6C5CE7', '#A29BFE', '#6C5CE7']}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 0 }}
+                                style={styles.continueButtonGradient}
+                            >
+                                <Text style={styles.continueButtonText}>Ingresar Nombres</Text>
+                                <View style={styles.arrowContainer}>
+                                    <Text style={styles.continueButtonIcon}>→</Text>
+                                </View>
+                            </LinearGradient>
+                        </TouchableOpacity>
+                    </Animated.View>
                 </Animated.View>
             </ScrollView>
         </LinearGradient>
@@ -182,145 +327,213 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
+    bgCircle1: {
+        position: 'absolute',
+        width: 300,
+        height: 300,
+        borderRadius: 150,
+        backgroundColor: '#6C5CE7',
+        top: -100,
+        right: -100,
+        opacity: 0.1,
+    },
+    bgCircle2: {
+        position: 'absolute',
+        width: 250,
+        height: 250,
+        borderRadius: 125,
+        backgroundColor: '#FF4757',
+        bottom: 100,
+        left: -80,
+        opacity: 0.1,
+    },
     scrollContent: {
         flexGrow: 1,
-        paddingTop: 40,
+        paddingTop: 60,
         paddingBottom: 40,
     },
     content: {
         flex: 1,
-        padding: 24,
-        justifyContent: 'center',
+        paddingHorizontal: 24,
     },
     header: {
         alignItems: 'center',
-        marginBottom: 40,
+        marginBottom: 32,
+    },
+    logoContainer: {
+        position: 'relative',
+        marginBottom: 16,
     },
     emoji: {
         fontSize: 80,
-        marginBottom: 16,
+    },
+    glowEffect: {
+        position: 'absolute',
+        width: 100,
+        height: 100,
+        borderRadius: 50,
+        backgroundColor: '#6C5CE7',
+        opacity: 0.3,
+        top: -10,
+        left: -10,
+        zIndex: -1,
     },
     title: {
-        fontSize: 48,
+        fontSize: 42,
         fontWeight: '900',
-        color: colors.textPrimary,
-        letterSpacing: 8,
-        textShadowColor: colors.primary,
+        color: '#FFFFFF',
+        letterSpacing: 6,
+        textShadowColor: '#6C5CE7',
         textShadowOffset: { width: 0, height: 0 },
-        textShadowRadius: 20,
+        textShadowRadius: 30,
     },
     subtitle: {
-        fontSize: 18,
-        color: colors.textSecondary,
+        fontSize: 16,
+        color: 'rgba(255, 255, 255, 0.6)',
         marginTop: 8,
-    },
-    settingsContainer: {
-        gap: 20,
-        marginBottom: 30,
+        textAlign: 'center',
     },
     settingCard: {
+        marginBottom: 16,
         borderRadius: 24,
         overflow: 'hidden',
         borderWidth: 1,
         borderColor: 'rgba(255, 255, 255, 0.1)',
     },
-    settingGradient: {
+    cardGradient: {
         padding: 24,
-        alignItems: 'center',
     },
-    settingIcon: {
-        fontSize: 40,
-        marginBottom: 12,
-    },
-    settingLabel: {
-        fontSize: 20,
-        fontWeight: '700',
-        color: colors.textPrimary,
-        marginBottom: 16,
-    },
-    counterContainer: {
+    cardHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 16,
+        marginBottom: 20,
     },
-    counterButton: {
-        width: 56,
-        height: 56,
-        borderRadius: 28,
-        backgroundColor: colors.primary,
-        justifyContent: 'center',
-        alignItems: 'center',
-        shadowColor: colors.primary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.4,
-        shadowRadius: 8,
-        elevation: 8,
-    },
-    impostorButton: {
-        backgroundColor: colors.impostorRed,
-        shadowColor: colors.impostorRed,
-    },
-    counterButtonText: {
-        fontSize: 32,
-        fontWeight: '700',
-        color: colors.textPrimary,
-    },
-    counterValue: {
-        width: 80,
-        height: 80,
+    iconBadge: {
+        width: 48,
+        height: 48,
         borderRadius: 16,
         backgroundColor: 'rgba(108, 92, 231, 0.3)',
         justifyContent: 'center',
         alignItems: 'center',
-        borderWidth: 2,
-        borderColor: colors.primary,
+        marginRight: 16,
     },
-    impostorValue: {
+    iconBadgeRed: {
         backgroundColor: 'rgba(255, 71, 87, 0.3)',
-        borderColor: colors.impostorRed,
+    },
+    settingIcon: {
+        fontSize: 24,
+    },
+    settingLabel: {
+        fontSize: 22,
+        fontWeight: '700',
+        color: '#FFFFFF',
+    },
+    counterContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 20,
+        marginBottom: 12,
+    },
+    counterButton: {
+        borderRadius: 20,
+        overflow: 'hidden',
+        shadowColor: '#6C5CE7',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 6,
+    },
+    counterButtonGradient: {
+        width: 56,
+        height: 56,
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    counterButtonText: {
+        fontSize: 28,
+        fontWeight: '600',
+        color: '#FFFFFF',
+    },
+    counterValueContainer: {
+        width: 90,
+        height: 90,
+        borderRadius: 24,
+        backgroundColor: 'rgba(108, 92, 231, 0.2)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 2,
+        borderColor: 'rgba(108, 92, 231, 0.5)',
+    },
+    counterValueRed: {
+        backgroundColor: 'rgba(255, 71, 87, 0.2)',
+        borderColor: 'rgba(255, 71, 87, 0.5)',
     },
     counterValueText: {
-        fontSize: 36,
+        fontSize: 40,
         fontWeight: '900',
-        color: colors.textPrimary,
+        color: '#FFFFFF',
     },
     settingHint: {
-        fontSize: 14,
-        color: colors.textMuted,
-        marginTop: 12,
+        fontSize: 13,
+        color: 'rgba(255, 255, 255, 0.4)',
+        textAlign: 'center',
     },
     summaryContainer: {
         flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 30,
-        gap: 20,
+        marginVertical: 24,
+        gap: 12,
     },
-    summaryItem: {
-        alignItems: 'center',
-    },
-    summaryValue: {
-        fontSize: 32,
-        fontWeight: '900',
-        color: colors.crewmateBlue,
-    },
-    summaryLabel: {
-        fontSize: 14,
-        color: colors.textSecondary,
-        marginTop: 4,
-    },
-    summaryDivider: {
-        fontSize: 24,
-        fontWeight: '700',
-        color: colors.textMuted,
-    },
-    continueButton: {
+    summaryCard: {
+        flex: 1,
         borderRadius: 20,
         overflow: 'hidden',
-        shadowColor: colors.primary,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.1)',
+    },
+    summaryGradient: {
+        padding: 16,
+        alignItems: 'center',
+    },
+    summaryEmoji: {
+        fontSize: 28,
+        marginBottom: 8,
+    },
+    summaryValue: {
+        fontSize: 36,
+        fontWeight: '900',
+        color: '#5DADE2',
+    },
+    summaryLabel: {
+        fontSize: 12,
+        color: 'rgba(255, 255, 255, 0.5)',
+        marginTop: 4,
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+    },
+    vsContainer: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    vsText: {
+        fontSize: 14,
+        fontWeight: '800',
+        color: 'rgba(255, 255, 255, 0.5)',
+    },
+    continueButton: {
+        borderRadius: 24,
+        overflow: 'hidden',
+        shadowColor: '#6C5CE7',
         shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.4,
-        shadowRadius: 16,
+        shadowOpacity: 0.5,
+        shadowRadius: 20,
         elevation: 12,
     },
     continueButtonGradient: {
@@ -329,15 +542,24 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         paddingVertical: 20,
         paddingHorizontal: 32,
-        gap: 12,
+        gap: 16,
     },
     continueButtonText: {
         fontSize: 20,
         fontWeight: '700',
-        color: colors.textPrimary,
+        color: '#FFFFFF',
+    },
+    arrowContainer: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     continueButtonIcon: {
-        fontSize: 24,
-        color: colors.textPrimary,
+        fontSize: 18,
+        color: '#FFFFFF',
+        fontWeight: '700',
     },
 });

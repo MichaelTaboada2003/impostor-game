@@ -27,22 +27,32 @@ export const PlayingScreen: React.FC<PlayingScreenProps> = ({ onNewGame }) => {
     const [isTimerRunning, setIsTimerRunning] = useState(false);
     const pulseAnim = useRef(new Animated.Value(1)).current;
     const fadeAnim = useRef(new Animated.Value(0)).current;
+    const scaleAnim = useRef(new Animated.Value(0.9)).current;
+    const timerGlowAnim = useRef(new Animated.Value(0)).current;
 
     const currentTheme = themes.find(t => t.id === gameState.config.themeId);
     const impostors = gameState.players.filter(p => p.isImpostor);
 
     useEffect(() => {
-        Animated.timing(fadeAnim, {
-            toValue: 1,
-            duration: 800,
-            useNativeDriver: true,
-        }).start();
+        Animated.parallel([
+            Animated.timing(fadeAnim, {
+                toValue: 1,
+                duration: 600,
+                useNativeDriver: true,
+            }),
+            Animated.spring(scaleAnim, {
+                toValue: 1,
+                friction: 8,
+                tension: 40,
+                useNativeDriver: true,
+            }),
+        ]).start();
 
-        // Pulse animation for the timer
+        // Animación de pulso
         Animated.loop(
             Animated.sequence([
                 Animated.timing(pulseAnim, {
-                    toValue: 1.05,
+                    toValue: 1.02,
                     duration: 1000,
                     useNativeDriver: true,
                 }),
@@ -61,6 +71,25 @@ export const PlayingScreen: React.FC<PlayingScreenProps> = ({ onNewGame }) => {
             interval = setInterval(() => {
                 setTimer(prev => prev + 1);
             }, 1000);
+
+            // Animación de glow del timer
+            Animated.loop(
+                Animated.sequence([
+                    Animated.timing(timerGlowAnim, {
+                        toValue: 1,
+                        duration: 1000,
+                        useNativeDriver: true,
+                    }),
+                    Animated.timing(timerGlowAnim, {
+                        toValue: 0.5,
+                        duration: 1000,
+                        useNativeDriver: true,
+                    }),
+                ])
+            ).start();
+        } else {
+            timerGlowAnim.stopAnimation();
+            timerGlowAnim.setValue(0);
         }
         return () => clearInterval(interval);
     }, [isTimerRunning]);
@@ -76,74 +105,126 @@ export const PlayingScreen: React.FC<PlayingScreenProps> = ({ onNewGame }) => {
         onNewGame();
     };
 
+    const timerGlowOpacity = timerGlowAnim.interpolate({
+        inputRange: [0, 0.5, 1],
+        outputRange: [0.3, 0.5, 0.8],
+    });
+
     return (
-        <LinearGradient colors={gradients.dark as [string, string]} style={styles.container}>
+        <LinearGradient
+            colors={['#0a0a1a', '#1a1a3a', '#0f0f2a']}
+            style={styles.container}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+        >
+            {/* Background effects */}
+            <View style={styles.bgCircle1} />
+            <View style={styles.bgCircle2} />
+
             <ScrollView
                 style={styles.scrollView}
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
             >
-                <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
-                    {/* Header */}
-                    <View style={styles.header}>
-                        <View style={styles.themeInfo}>
-                            <Text style={styles.themeIcon}>{currentTheme?.icon}</Text>
-                            <View>
-                                <Text style={styles.themeName}>{currentTheme?.name}</Text>
-                                <Text style={styles.playerCount}>
-                                    {gameState.config.numberOfPlayers} jugadores · {gameState.config.numberOfImpostors} impostor(es)
-                                </Text>
+                <Animated.View
+                    style={[
+                        styles.content,
+                        {
+                            opacity: fadeAnim,
+                            transform: [{ scale: scaleAnim }]
+                        }
+                    ]}
+                >
+                    {/* Header Card */}
+                    <View style={styles.headerCard}>
+                        <LinearGradient
+                            colors={[`${currentTheme?.color}30`, `${currentTheme?.color}10`]}
+                            style={styles.headerCardGradient}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                        >
+                            <View style={styles.themeInfo}>
+                                <View style={[
+                                    styles.themeIconContainer,
+                                    { backgroundColor: `${currentTheme?.color}40` }
+                                ]}>
+                                    <Text style={styles.themeIcon}>{currentTheme?.icon}</Text>
+                                </View>
+                                <View style={styles.themeDetails}>
+                                    <Text style={styles.themeName}>{currentTheme?.name}</Text>
+                                    <Text style={styles.playerCount}>
+                                        {gameState.config.numberOfPlayers} jugadores · {gameState.config.numberOfImpostors} impostor
+                                    </Text>
+                                </View>
                             </View>
-                        </View>
+                        </LinearGradient>
                     </View>
 
                     {/* Timer */}
-                    <Animated.View style={[styles.timerContainer, { transform: [{ scale: pulseAnim }] }]}>
+                    <View style={styles.timerSection}>
                         <TouchableOpacity
                             onPress={() => setIsTimerRunning(!isTimerRunning)}
-                            style={styles.timerButton}
+                            activeOpacity={0.9}
                         >
-                            <LinearGradient
-                                colors={isTimerRunning ? ['#FF6B35', '#E84118'] : ['#2D2D44', '#1A1A2E']}
-                                style={styles.timerGradient}
-                            >
-                                <Text style={styles.timerText}>{formatTime(timer)}</Text>
-                                <Text style={styles.timerLabel}>
-                                    {isTimerRunning ? 'Toca para pausar' : 'Toca para iniciar'}
-                                </Text>
-                            </LinearGradient>
+                            <Animated.View style={[
+                                styles.timerContainer,
+                                { transform: [{ scale: isTimerRunning ? pulseAnim : 1 }] }
+                            ]}>
+                                {/* Glow effect */}
+                                {isTimerRunning && (
+                                    <Animated.View
+                                        style={[
+                                            styles.timerGlow,
+                                            { opacity: timerGlowOpacity }
+                                        ]}
+                                    />
+                                )}
+                                <LinearGradient
+                                    colors={isTimerRunning
+                                        ? ['#FF6B35', '#FF4757']
+                                        : ['#2a2a4a', '#1a1a3a']
+                                    }
+                                    style={styles.timerGradient}
+                                >
+                                    <Text style={styles.timerText}>{formatTime(timer)}</Text>
+                                    <Text style={styles.timerLabel}>
+                                        {isTimerRunning ? '⏸ Toca para pausar' : '▶ Toca para iniciar'}
+                                    </Text>
+                                </LinearGradient>
+                            </Animated.View>
                         </TouchableOpacity>
-                    </Animated.View>
+                    </View>
 
-                    {/* Instructions */}
-                    <View style={styles.instructionsContainer}>
-                        <Text style={styles.instructionsTitle}>📋 Instrucciones</Text>
-                        <View style={styles.instructionsList}>
-                            <View style={styles.instructionItem}>
-                                <Text style={styles.instructionNumber}>1</Text>
-                                <Text style={styles.instructionText}>
-                                    Por turnos, cada jugador da una pista sobre la palabra
-                                </Text>
+                    {/* Instructions Card */}
+                    <View style={styles.instructionsCard}>
+                        <LinearGradient
+                            colors={['rgba(255, 255, 255, 0.08)', 'rgba(255, 255, 255, 0.02)']}
+                            style={styles.instructionsGradient}
+                        >
+                            <View style={styles.instructionsHeader}>
+                                <Text style={styles.instructionsIcon}>📋</Text>
+                                <Text style={styles.instructionsTitle}>Cómo Jugar</Text>
                             </View>
-                            <View style={styles.instructionItem}>
-                                <Text style={styles.instructionNumber}>2</Text>
-                                <Text style={styles.instructionText}>
-                                    El impostor no conoce la palabra, debe disimular
-                                </Text>
+
+                            <View style={styles.instructionsList}>
+                                {[
+                                    '👆 Por turnos, cada jugador da una pista sobre la palabra',
+                                    '🤫 El impostor no conoce la palabra, debe disimular',
+                                    '🗳️ Después de varias rondas, voten quién es el impostor',
+                                    '🎉 Si el impostor es descubierto, ¡ganan los tripulantes!'
+                                ].map((instruction, index) => (
+                                    <View key={index} style={styles.instructionItem}>
+                                        <View style={styles.instructionDot}>
+                                            <LinearGradient
+                                                colors={['#6C5CE7', '#A29BFE']}
+                                                style={styles.instructionDotGradient}
+                                            />
+                                        </View>
+                                        <Text style={styles.instructionText}>{instruction}</Text>
+                                    </View>
+                                ))}
                             </View>
-                            <View style={styles.instructionItem}>
-                                <Text style={styles.instructionNumber}>3</Text>
-                                <Text style={styles.instructionText}>
-                                    Después de varias rondas, voten quién es el impostor
-                                </Text>
-                            </View>
-                            <View style={styles.instructionItem}>
-                                <Text style={styles.instructionNumber}>4</Text>
-                                <Text style={styles.instructionText}>
-                                    Si el impostor es descubierto, ¡ganan los tripulantes!
-                                </Text>
-                            </View>
-                        </View>
+                        </LinearGradient>
                     </View>
 
                     {/* Action buttons */}
@@ -151,6 +232,7 @@ export const PlayingScreen: React.FC<PlayingScreenProps> = ({ onNewGame }) => {
                         <TouchableOpacity
                             style={styles.revealButton}
                             onPress={() => setShowReveal(true)}
+                            activeOpacity={0.8}
                         >
                             <LinearGradient
                                 colors={['#FF4757', '#C0392B']}
@@ -163,9 +245,13 @@ export const PlayingScreen: React.FC<PlayingScreenProps> = ({ onNewGame }) => {
                             </LinearGradient>
                         </TouchableOpacity>
 
-                        <TouchableOpacity style={styles.newGameButton} onPress={handleNewGame}>
+                        <TouchableOpacity
+                            style={styles.newGameButton}
+                            onPress={handleNewGame}
+                            activeOpacity={0.8}
+                        >
                             <LinearGradient
-                                colors={gradients.primary as [string, string]}
+                                colors={['#6C5CE7', '#A29BFE']}
                                 start={{ x: 0, y: 0 }}
                                 end={{ x: 1, y: 0 }}
                                 style={styles.newGameButtonGradient}
@@ -187,14 +273,24 @@ export const PlayingScreen: React.FC<PlayingScreenProps> = ({ onNewGame }) => {
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
                         <LinearGradient
-                            colors={['#2D2D44', '#1A1A2E']}
+                            colors={['#1a1a3a', '#0f0f2a']}
                             style={styles.modalGradient}
                         >
-                            <Text style={styles.modalTitle}>🔍 Revelación</Text>
+                            <View style={styles.modalHeader}>
+                                <Text style={styles.modalEmoji}>🔍</Text>
+                                <Text style={styles.modalTitle}>Revelación</Text>
+                            </View>
 
                             <View style={styles.revealSection}>
                                 <Text style={styles.revealLabel}>La palabra era:</Text>
-                                <Text style={styles.revealWord}>{gameState.secretWord}</Text>
+                                <View style={styles.wordBadge}>
+                                    <LinearGradient
+                                        colors={['#6C5CE7', '#A29BFE']}
+                                        style={styles.wordBadgeGradient}
+                                    >
+                                        <Text style={styles.revealWord}>{gameState.secretWord}</Text>
+                                    </LinearGradient>
+                                </View>
                             </View>
 
                             <View style={styles.revealSection}>
@@ -204,19 +300,23 @@ export const PlayingScreen: React.FC<PlayingScreenProps> = ({ onNewGame }) => {
                                 <View style={styles.impostorsList}>
                                     {impostors.map(impostor => (
                                         <View key={impostor.id} style={styles.impostorItem}>
-                                            <Text style={styles.impostorEmoji}>🔪</Text>
-                                            <Text style={styles.impostorName}>
-                                                {impostor.name}
-                                            </Text>
+                                            <LinearGradient
+                                                colors={['rgba(255, 71, 87, 0.3)', 'rgba(255, 71, 87, 0.1)']}
+                                                style={styles.impostorItemGradient}
+                                            >
+                                                <Text style={styles.impostorEmoji}>🔪</Text>
+                                                <Text style={styles.impostorName}>{impostor.name}</Text>
+                                            </LinearGradient>
                                         </View>
                                     ))}
                                 </View>
                             </View>
 
-                            <View style={styles.modalButtonsContainer}>
+                            <View style={styles.modalButtons}>
                                 <TouchableOpacity
                                     style={styles.modalCloseButton}
                                     onPress={() => setShowReveal(false)}
+                                    activeOpacity={0.8}
                                 >
                                     <Text style={styles.modalCloseButtonText}>Cerrar</Text>
                                 </TouchableOpacity>
@@ -227,14 +327,17 @@ export const PlayingScreen: React.FC<PlayingScreenProps> = ({ onNewGame }) => {
                                         setShowReveal(false);
                                         handleNewGame();
                                     }}
+                                    activeOpacity={0.8}
                                 >
                                     <LinearGradient
-                                        colors={gradients.primary as [string, string]}
+                                        colors={['#6C5CE7', '#A29BFE']}
                                         start={{ x: 0, y: 0 }}
                                         end={{ x: 1, y: 0 }}
                                         style={styles.modalNewGameButtonGradient}
                                     >
-                                        <Text style={styles.modalNewGameButtonText}>🔄 Nueva Partida</Text>
+                                        <Text style={styles.modalNewGameButtonText}>
+                                            🔄 Nueva Partida
+                                        </Text>
                                     </LinearGradient>
                                 </TouchableOpacity>
                             </View>
@@ -250,6 +353,26 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
+    bgCircle1: {
+        position: 'absolute',
+        width: 250,
+        height: 250,
+        borderRadius: 125,
+        backgroundColor: '#6C5CE7',
+        top: -80,
+        right: -80,
+        opacity: 0.08,
+    },
+    bgCircle2: {
+        position: 'absolute',
+        width: 180,
+        height: 180,
+        borderRadius: 90,
+        backgroundColor: '#FF4757',
+        bottom: 100,
+        left: -60,
+        opacity: 0.08,
+    },
     scrollView: {
         flex: 1,
     },
@@ -260,45 +383,61 @@ const styles = StyleSheet.create({
     },
     content: {
         flex: 1,
-        padding: 24,
-        paddingTop: 0,
+        paddingHorizontal: 24,
     },
-    header: {
+    headerCard: {
+        borderRadius: 24,
+        overflow: 'hidden',
         marginBottom: 24,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.1)',
+    },
+    headerCardGradient: {
+        padding: 20,
     },
     themeInfo: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-        padding: 16,
-        borderRadius: 16,
         gap: 16,
     },
+    themeIconContainer: {
+        width: 64,
+        height: 64,
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
     themeIcon: {
-        fontSize: 48,
+        fontSize: 36,
+    },
+    themeDetails: {
+        flex: 1,
     },
     themeName: {
         fontSize: 24,
         fontWeight: '800',
-        color: colors.textPrimary,
+        color: '#FFFFFF',
+        marginBottom: 4,
     },
     playerCount: {
         fontSize: 14,
-        color: colors.textSecondary,
-        marginTop: 4,
+        color: 'rgba(255, 255, 255, 0.6)',
     },
-    timerContainer: {
+    timerSection: {
         alignItems: 'center',
         marginBottom: 24,
     },
-    timerButton: {
+    timerContainer: {
+        position: 'relative',
+    },
+    timerGlow: {
+        position: 'absolute',
+        width: 200,
+        height: 200,
         borderRadius: 100,
-        overflow: 'hidden',
-        shadowColor: colors.primary,
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.4,
-        shadowRadius: 16,
-        elevation: 12,
+        backgroundColor: '#FF4757',
+        top: -10,
+        left: -10,
     },
     timerGradient: {
         width: 180,
@@ -306,62 +445,73 @@ const styles = StyleSheet.create({
         borderRadius: 90,
         justifyContent: 'center',
         alignItems: 'center',
+        borderWidth: 3,
+        borderColor: 'rgba(255, 255, 255, 0.1)',
     },
     timerText: {
         fontSize: 42,
         fontWeight: '900',
-        color: colors.textPrimary,
+        color: '#FFFFFF',
         fontVariant: ['tabular-nums'],
     },
     timerLabel: {
-        fontSize: 12,
-        color: colors.textSecondary,
+        fontSize: 13,
+        color: 'rgba(255, 255, 255, 0.7)',
         marginTop: 8,
     },
-    instructionsContainer: {
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-        borderRadius: 20,
-        padding: 16,
-        marginBottom: 20,
+    instructionsCard: {
+        borderRadius: 24,
+        overflow: 'hidden',
+        marginBottom: 24,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.08)',
+    },
+    instructionsGradient: {
+        padding: 20,
+    },
+    instructionsHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        marginBottom: 16,
+    },
+    instructionsIcon: {
+        fontSize: 24,
     },
     instructionsTitle: {
-        fontSize: 18,
+        fontSize: 20,
         fontWeight: '700',
-        color: colors.textPrimary,
-        marginBottom: 12,
+        color: '#FFFFFF',
     },
     instructionsList: {
-        gap: 10,
+        gap: 14,
     },
     instructionItem: {
         flexDirection: 'row',
         alignItems: 'flex-start',
-        gap: 10,
+        gap: 12,
     },
-    instructionNumber: {
-        width: 24,
-        height: 24,
-        borderRadius: 12,
-        backgroundColor: colors.primary,
-        color: colors.textPrimary,
-        fontSize: 12,
-        fontWeight: '700',
-        textAlign: 'center',
-        lineHeight: 24,
+    instructionDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        marginTop: 6,
         overflow: 'hidden',
+    },
+    instructionDotGradient: {
+        flex: 1,
     },
     instructionText: {
         flex: 1,
-        fontSize: 14,
-        color: colors.textSecondary,
-        lineHeight: 20,
+        fontSize: 15,
+        color: 'rgba(255, 255, 255, 0.7)',
+        lineHeight: 22,
     },
     actionsContainer: {
         gap: 12,
-        marginTop: 'auto',
     },
     revealButton: {
-        borderRadius: 20,
+        borderRadius: 24,
         overflow: 'hidden',
         shadowColor: '#FF4757',
         shadowOffset: { width: 0, height: 8 },
@@ -383,12 +533,12 @@ const styles = StyleSheet.create({
     revealButtonText: {
         fontSize: 18,
         fontWeight: '700',
-        color: colors.textPrimary,
+        color: '#FFFFFF',
     },
     newGameButton: {
-        borderRadius: 20,
+        borderRadius: 24,
         overflow: 'hidden',
-        shadowColor: colors.primary,
+        shadowColor: '#6C5CE7',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 8,
@@ -402,65 +552,79 @@ const styles = StyleSheet.create({
         paddingHorizontal: 32,
     },
     newGameButtonText: {
-        fontSize: 18,
+        fontSize: 17,
         fontWeight: '600',
-        color: colors.textPrimary,
+        color: '#FFFFFF',
     },
     modalOverlay: {
         flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        backgroundColor: 'rgba(0, 0, 0, 0.85)',
         justifyContent: 'center',
         alignItems: 'center',
         padding: 24,
     },
     modalContent: {
         width: '100%',
-        maxWidth: 400,
-        borderRadius: 24,
+        maxWidth: 380,
+        borderRadius: 28,
         overflow: 'hidden',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 20 },
-        shadowOpacity: 0.5,
-        shadowRadius: 30,
-        elevation: 20,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.1)',
     },
     modalGradient: {
-        padding: 32,
+        padding: 28,
         alignItems: 'center',
+    },
+    modalHeader: {
+        alignItems: 'center',
+        marginBottom: 24,
+    },
+    modalEmoji: {
+        fontSize: 48,
+        marginBottom: 12,
     },
     modalTitle: {
         fontSize: 28,
         fontWeight: '900',
-        color: colors.textPrimary,
-        marginBottom: 24,
+        color: '#FFFFFF',
     },
     revealSection: {
         alignItems: 'center',
-        marginBottom: 20,
+        marginBottom: 24,
         width: '100%',
     },
     revealLabel: {
-        fontSize: 16,
-        color: colors.textSecondary,
-        marginBottom: 8,
+        fontSize: 15,
+        color: 'rgba(255, 255, 255, 0.6)',
+        marginBottom: 12,
+    },
+    wordBadge: {
+        borderRadius: 16,
+        overflow: 'hidden',
+    },
+    wordBadgeGradient: {
+        paddingHorizontal: 32,
+        paddingVertical: 16,
     },
     revealWord: {
-        fontSize: 32,
+        fontSize: 28,
         fontWeight: '900',
-        color: colors.secondary,
+        color: '#FFFFFF',
         textAlign: 'center',
     },
     impostorsList: {
-        gap: 12,
-        marginTop: 8,
+        gap: 10,
+        width: '100%',
     },
     impostorItem: {
+        borderRadius: 16,
+        overflow: 'hidden',
+    },
+    impostorItemGradient: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(255, 71, 87, 0.2)',
         paddingHorizontal: 20,
-        paddingVertical: 12,
-        borderRadius: 12,
+        paddingVertical: 14,
         gap: 12,
     },
     impostorEmoji: {
@@ -469,9 +633,9 @@ const styles = StyleSheet.create({
     impostorName: {
         fontSize: 20,
         fontWeight: '700',
-        color: colors.impostorRed,
+        color: '#FF4757',
     },
-    modalButtonsContainer: {
+    modalButtons: {
         width: '100%',
         gap: 12,
         marginTop: 8,
@@ -479,29 +643,25 @@ const styles = StyleSheet.create({
     modalCloseButton: {
         backgroundColor: 'rgba(255, 255, 255, 0.1)',
         paddingVertical: 14,
-        paddingHorizontal: 32,
         borderRadius: 16,
         alignItems: 'center',
     },
     modalCloseButtonText: {
         fontSize: 16,
         fontWeight: '600',
-        color: colors.textSecondary,
+        color: 'rgba(255, 255, 255, 0.7)',
     },
     modalNewGameButton: {
         borderRadius: 16,
         overflow: 'hidden',
     },
     modalNewGameButtonGradient: {
-        flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center',
         paddingVertical: 16,
-        paddingHorizontal: 32,
     },
     modalNewGameButtonText: {
-        fontSize: 18,
+        fontSize: 17,
         fontWeight: '700',
-        color: colors.textPrimary,
+        color: '#FFFFFF',
     },
 });

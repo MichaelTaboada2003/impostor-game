@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     View,
     Text,
@@ -27,26 +27,55 @@ export const ThemeSelectionScreen: React.FC<ThemeSelectionScreenProps> = ({
 }) => {
     const { selectTheme, initializePlayers } = useGame();
     const [selectedTheme, setSelectedTheme] = useState<string | null>(null);
-    const [fadeAnim] = useState(new Animated.Value(0));
-    const [slideAnim] = useState(new Animated.Value(50));
+    const fadeAnim = useRef(new Animated.Value(0)).current;
+    const headerAnim = useRef(new Animated.Value(-30)).current;
+    const cardAnims = useRef(themes.map(() => new Animated.Value(0))).current;
+    const scaleAnims = useRef(themes.map(() => new Animated.Value(1))).current;
 
     useEffect(() => {
+        // Animación del header
         Animated.parallel([
             Animated.timing(fadeAnim, {
                 toValue: 1,
-                duration: 600,
+                duration: 400,
                 useNativeDriver: true,
             }),
-            Animated.spring(slideAnim, {
+            Animated.spring(headerAnim, {
                 toValue: 0,
                 friction: 8,
-                tension: 40,
+                tension: 50,
                 useNativeDriver: true,
             }),
         ]).start();
+
+        // Animación escalonada de las tarjetas
+        const staggeredAnimations = cardAnims.map((anim, index) =>
+            Animated.timing(anim, {
+                toValue: 1,
+                duration: 400,
+                delay: index * 50,
+                useNativeDriver: true,
+            })
+        );
+        Animated.stagger(50, staggeredAnimations).start();
     }, []);
 
-    const handleSelectTheme = (themeId: string) => {
+    const handleSelectTheme = (themeId: string, index: number) => {
+        // Animación de selección
+        Animated.sequence([
+            Animated.timing(scaleAnims[index], {
+                toValue: 0.95,
+                duration: 100,
+                useNativeDriver: true,
+            }),
+            Animated.spring(scaleAnims[index], {
+                toValue: 1,
+                friction: 3,
+                tension: 100,
+                useNativeDriver: true,
+            }),
+        ]).start();
+
         setSelectedTheme(themeId);
     };
 
@@ -59,20 +88,38 @@ export const ThemeSelectionScreen: React.FC<ThemeSelectionScreenProps> = ({
     };
 
     return (
-        <LinearGradient colors={gradients.dark as [string, string]} style={styles.container}>
+        <LinearGradient
+            colors={['#0a0a1a', '#1a1a3a', '#0f0f2a']}
+            style={styles.container}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+        >
+            {/* Background effects */}
+            <View style={styles.bgCircle1} />
+            <View style={styles.bgCircle2} />
+
             <Animated.View
                 style={[
                     styles.header,
-                    { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
+                    {
+                        opacity: fadeAnim,
+                        transform: [{ translateY: headerAnim }]
+                    },
                 ]}
             >
                 <TouchableOpacity style={styles.backButton} onPress={onBack}>
-                    <Text style={styles.backButtonText}>← Atrás</Text>
+                    <View style={styles.backButtonInner}>
+                        <Text style={styles.backButtonIcon}>←</Text>
+                        <Text style={styles.backButtonText}>Atrás</Text>
+                    </View>
                 </TouchableOpacity>
-                <Text style={styles.title}>Elige una temática</Text>
-                <Text style={styles.subtitle}>
-                    Las palabras serán secretas hasta repartir los roles
-                </Text>
+
+                <View style={styles.titleContainer}>
+                    <Text style={styles.title}>Elige una temática</Text>
+                    <Text style={styles.subtitle}>
+                        Selecciona la categoría de palabras para esta partida
+                    </Text>
+                </View>
             </Animated.View>
 
             <ScrollView
@@ -81,77 +128,139 @@ export const ThemeSelectionScreen: React.FC<ThemeSelectionScreenProps> = ({
                 showsVerticalScrollIndicator={false}
             >
                 <View style={styles.themesGrid}>
-                    {themes.map((theme, index) => (
-                        <Animated.View
-                            key={theme.id}
-                            style={[
-                                styles.themeCardContainer,
-                                {
-                                    opacity: fadeAnim,
-                                    transform: [
-                                        {
-                                            translateY: slideAnim.interpolate({
-                                                inputRange: [0, 50],
-                                                outputRange: [0, 50 + index * 10],
-                                            }),
-                                        },
-                                    ],
-                                },
-                            ]}
-                        >
-                            <TouchableOpacity
+                    {themes.map((theme, index) => {
+                        const isSelected = selectedTheme === theme.id;
+
+                        return (
+                            <Animated.View
+                                key={theme.id}
                                 style={[
-                                    styles.themeCard,
-                                    selectedTheme === theme.id && styles.themeCardSelected,
-                                    { borderColor: theme.color },
+                                    styles.themeCardContainer,
+                                    {
+                                        opacity: cardAnims[index],
+                                        transform: [
+                                            { scale: scaleAnims[index] },
+                                            {
+                                                translateY: cardAnims[index].interpolate({
+                                                    inputRange: [0, 1],
+                                                    outputRange: [30, 0],
+                                                }),
+                                            },
+                                        ],
+                                    },
                                 ]}
-                                onPress={() => handleSelectTheme(theme.id)}
-                                activeOpacity={0.7}
                             >
-                                <LinearGradient
-                                    colors={[
-                                        `${theme.color}40`,
-                                        `${theme.color}10`,
+                                <TouchableOpacity
+                                    style={[
+                                        styles.themeCard,
+                                        isSelected && styles.themeCardSelected,
                                     ]}
-                                    style={styles.themeCardGradient}
+                                    onPress={() => handleSelectTheme(theme.id, index)}
+                                    activeOpacity={0.8}
                                 >
-                                    <Text style={styles.themeIcon}>{theme.icon}</Text>
-                                    <Text style={styles.themeName}>{theme.name}</Text>
-                                    <Text style={styles.themeWordCount}>
-                                        {theme.words.length} palabras
-                                    </Text>
-                                    {selectedTheme === theme.id && (
-                                        <View style={[styles.selectedBadge, { backgroundColor: theme.color }]}>
-                                            <Text style={styles.selectedBadgeText}>✓</Text>
+                                    <LinearGradient
+                                        colors={
+                                            isSelected
+                                                ? [`${theme.color}50`, `${theme.color}20`]
+                                                : ['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.02)']
+                                        }
+                                        style={styles.themeCardGradient}
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 1, y: 1 }}
+                                    >
+                                        <View
+                                            style={[
+                                                styles.iconContainer,
+                                                { backgroundColor: `${theme.color}30` }
+                                            ]}
+                                        >
+                                            <Text style={styles.themeIcon}>{theme.icon}</Text>
                                         </View>
-                                    )}
-                                </LinearGradient>
-                            </TouchableOpacity>
-                        </Animated.View>
-                    ))}
+
+                                        <Text
+                                            style={[
+                                                styles.themeName,
+                                                isSelected && { color: theme.color }
+                                            ]}
+                                        >
+                                            {theme.name}
+                                        </Text>
+
+                                        <View style={styles.wordCountBadge}>
+                                            <Text style={styles.themeWordCount}>
+                                                {theme.words.length} palabras
+                                            </Text>
+                                        </View>
+
+                                        {isSelected && (
+                                            <View
+                                                style={[
+                                                    styles.selectedBadge,
+                                                    { backgroundColor: theme.color }
+                                                ]}
+                                            >
+                                                <Text style={styles.selectedBadgeText}>✓</Text>
+                                            </View>
+                                        )}
+
+                                        {isSelected && (
+                                            <View
+                                                style={[
+                                                    styles.selectedBorder,
+                                                    { borderColor: theme.color }
+                                                ]}
+                                            />
+                                        )}
+                                    </LinearGradient>
+                                </TouchableOpacity>
+                            </Animated.View>
+                        );
+                    })}
                 </View>
             </ScrollView>
 
-            {selectedTheme && (
-                <Animated.View style={[styles.footer, { opacity: fadeAnim }]}>
-                    <TouchableOpacity style={styles.confirmButton} onPress={handleConfirm}>
-                        <LinearGradient
-                            colors={[
-                                themes.find(t => t.id === selectedTheme)?.color || colors.primary,
-                                colors.primaryDark,
-                            ]}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 0 }}
-                            style={styles.confirmButtonGradient}
+            {/* Footer con botón */}
+            <Animated.View
+                style={[
+                    styles.footer,
+                    {
+                        opacity: fadeAnim,
+                        transform: [{
+                            translateY: selectedTheme ? 0 : 100
+                        }]
+                    }
+                ]}
+            >
+                <LinearGradient
+                    colors={['rgba(10, 10, 26, 0)', 'rgba(10, 10, 26, 0.95)', 'rgba(10, 10, 26, 1)']}
+                    style={styles.footerGradient}
+                >
+                    {selectedTheme && (
+                        <TouchableOpacity
+                            style={styles.confirmButton}
+                            onPress={handleConfirm}
+                            activeOpacity={0.8}
                         >
-                            <Text style={styles.confirmButtonText}>
-                                Repartir Roles
-                            </Text>
-                            <Text style={styles.confirmButtonIcon}>🎭</Text>
-                        </LinearGradient>
-                    </TouchableOpacity>
-                </Animated.View>
-            )}
+                            <LinearGradient
+                                colors={[
+                                    themes.find(t => t.id === selectedTheme)?.color || '#6C5CE7',
+                                    '#6C5CE7',
+                                ]}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 0 }}
+                                style={styles.confirmButtonGradient}
+                            >
+                                <Text style={styles.confirmButtonText}>
+                                    Repartir Roles
+                                </Text>
+                                <View style={styles.confirmButtonIconContainer}>
+                                    <Text style={styles.confirmButtonIcon}>🎭</Text>
+                                </View>
+                            </LinearGradient>
+                        </TouchableOpacity>
+                    )}
+                </LinearGradient>
+            </Animated.View>
         </LinearGradient>
     );
 };
@@ -160,79 +269,119 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
+    bgCircle1: {
+        position: 'absolute',
+        width: 200,
+        height: 200,
+        borderRadius: 100,
+        backgroundColor: '#6C5CE7',
+        top: -50,
+        right: -50,
+        opacity: 0.08,
+    },
+    bgCircle2: {
+        position: 'absolute',
+        width: 150,
+        height: 150,
+        borderRadius: 75,
+        backgroundColor: '#FF4757',
+        bottom: 200,
+        left: -50,
+        opacity: 0.08,
+    },
     header: {
         paddingTop: 60,
         paddingHorizontal: 24,
-        paddingBottom: 20,
+        paddingBottom: 16,
     },
     backButton: {
-        marginBottom: 16,
+        marginBottom: 20,
+    },
+    backButtonInner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    backButtonIcon: {
+        fontSize: 20,
+        color: 'rgba(255, 255, 255, 0.6)',
     },
     backButtonText: {
         fontSize: 16,
-        color: colors.textSecondary,
+        color: 'rgba(255, 255, 255, 0.6)',
+    },
+    titleContainer: {
+        gap: 8,
     },
     title: {
         fontSize: 32,
         fontWeight: '900',
-        color: colors.textPrimary,
-        marginBottom: 8,
+        color: '#FFFFFF',
     },
     subtitle: {
-        fontSize: 16,
-        color: colors.textSecondary,
-        lineHeight: 24,
+        fontSize: 15,
+        color: 'rgba(255, 255, 255, 0.5)',
+        lineHeight: 22,
     },
     scrollView: {
         flex: 1,
     },
     scrollContent: {
         paddingHorizontal: 24,
-        paddingBottom: 120,
+        paddingBottom: 140,
     },
     themesGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: 16,
         justifyContent: 'space-between',
+        gap: 16,
     },
     themeCardContainer: {
         width: CARD_WIDTH,
     },
     themeCard: {
-        borderRadius: 20,
+        borderRadius: 24,
         overflow: 'hidden',
-        borderWidth: 2,
-        borderColor: 'transparent',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.08)',
     },
     themeCardSelected: {
-        borderWidth: 3,
-        shadowColor: '#FFF',
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.3,
-        shadowRadius: 12,
-        elevation: 8,
+        borderWidth: 0,
     },
     themeCardGradient: {
         padding: 20,
         alignItems: 'center',
-        minHeight: 140,
+        minHeight: 160,
         justifyContent: 'center',
+        position: 'relative',
     },
-    themeIcon: {
-        fontSize: 48,
+    iconContainer: {
+        width: 64,
+        height: 64,
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
         marginBottom: 12,
     },
+    themeIcon: {
+        fontSize: 36,
+    },
     themeName: {
-        fontSize: 16,
+        fontSize: 15,
         fontWeight: '700',
-        color: colors.textPrimary,
+        color: '#FFFFFF',
         textAlign: 'center',
-        marginBottom: 4,
+        marginBottom: 8,
+    },
+    wordCountBadge: {
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 12,
     },
     themeWordCount: {
-        fontSize: 12,
-        color: colors.textMuted,
+        fontSize: 11,
+        color: 'rgba(255, 255, 255, 0.5)',
     },
     selectedBadge: {
         position: 'absolute',
@@ -250,28 +399,37 @@ const styles = StyleSheet.create({
         elevation: 4,
     },
     selectedBadgeText: {
-        fontSize: 16,
+        fontSize: 14,
         fontWeight: '700',
-        color: colors.textPrimary,
+        color: '#FFFFFF',
+    },
+    selectedBorder: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        borderRadius: 24,
+        borderWidth: 2,
     },
     footer: {
         position: 'absolute',
         bottom: 0,
         left: 0,
         right: 0,
-        padding: 24,
+    },
+    footerGradient: {
+        paddingHorizontal: 24,
+        paddingTop: 40,
         paddingBottom: 40,
-        backgroundColor: 'rgba(15, 15, 26, 0.95)',
-        borderTopWidth: 1,
-        borderTopColor: 'rgba(255, 255, 255, 0.1)',
     },
     confirmButton: {
-        borderRadius: 20,
+        borderRadius: 24,
         overflow: 'hidden',
-        shadowColor: colors.primary,
+        shadowColor: '#6C5CE7',
         shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.4,
-        shadowRadius: 16,
+        shadowOpacity: 0.5,
+        shadowRadius: 20,
         elevation: 12,
     },
     confirmButtonGradient: {
@@ -280,14 +438,22 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         paddingVertical: 20,
         paddingHorizontal: 32,
-        gap: 12,
+        gap: 16,
     },
     confirmButtonText: {
         fontSize: 20,
         fontWeight: '700',
-        color: colors.textPrimary,
+        color: '#FFFFFF',
+    },
+    confirmButtonIconContainer: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     confirmButtonIcon: {
-        fontSize: 24,
+        fontSize: 20,
     },
 });

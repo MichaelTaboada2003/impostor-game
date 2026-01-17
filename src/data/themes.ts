@@ -1,5 +1,5 @@
-// Temáticas del juego Impostor
-// Las palabras no se muestran al usuario cuando selecciona la temática
+// Tematicas del juego Impostor
+// Las palabras no se muestran al usuario cuando selecciona la tematica
 
 export interface Theme {
     id: string;
@@ -16,10 +16,10 @@ export const themes: Theme[] = [
         icon: '🦁',
         color: '#FF6B35',
         words: [
-            'Perro', 'Gato', 'Elefante', 'León', 'Tigre', 'Jirafa', 'Cebra', 'Mono',
-            'Serpiente', 'Águila', 'Delfín', 'Tiburón', 'Ballena', 'Oso', 'Lobo',
+            'Perro', 'Gato', 'Elefante', 'Leon', 'Tigre', 'Jirafa', 'Cebra', 'Mono',
+            'Serpiente', 'Aguila', 'Delfin', 'Tiburon', 'Ballena', 'Oso', 'Lobo',
             'Zorro', 'Conejo', 'Caballo', 'Vaca', 'Cerdo', 'Oveja', 'Gallina',
-            'Pato', 'Loro', 'Búho', 'Pingüino', 'Koala', 'Canguro', 'Hipopótamo',
+            'Pato', 'Loro', 'Buho', 'Pinguino', 'Koala', 'Canguro', 'Hipopotamo',
             'Rinoceronte', 'Cocodrilo', 'Tortuga', 'Camello', 'Gorila', 'Pantera'
         ]
     },
@@ -30,7 +30,7 @@ export const themes: Theme[] = [
         color: '#E63946',
         words: [
             'Pizza', 'Hamburguesa', 'Sushi', 'Tacos', 'Pasta', 'Paella', 'Ensalada',
-            'Arroz', 'Pollo', 'Pescado', 'Carne', 'Sopa', 'Lasaña', 'Empanada',
+            'Arroz', 'Pollo', 'Pescado', 'Carne', 'Sopa', 'Lasana', 'Empanada',
             'Arepa', 'Ceviche', 'Burrito', 'Nachos', 'Hot dog', 'Sandwich',
             'Falafel', 'Curry', 'Ramen', 'Pho', 'Dim sum', 'Kebab', 'Gyros',
             'Pad thai', 'Crepe', 'Waffle', 'Panqueques', 'Omelette', 'Quesadilla'
@@ -42,38 +42,38 @@ export const themes: Theme[] = [
         icon: '⚽',
         color: '#2A9D8F',
         words: [
-            'Fútbol', 'Baloncesto', 'Tenis', 'Béisbol', 'Voleibol', 'Natación',
+            'Futbol', 'Baloncesto', 'Tenis', 'Beisbol', 'Voleibol', 'Natacion',
             'Atletismo', 'Ciclismo', 'Boxeo', 'Golf', 'Rugby', 'Hockey',
-            'Esquí', 'Snowboard', 'Surf', 'Skate', 'Gimnasia', 'Karate',
+            'Esqui', 'Snowboard', 'Surf', 'Skate', 'Gimnasia', 'Karate',
             'Judo', 'Taekwondo', 'Esgrima', 'Remo', 'Vela', 'Escalada',
-            'Patinaje', 'Polo', 'Críquet', 'Bádminton', 'Ping pong', 'Handball'
+            'Patinaje', 'Polo', 'Criquet', 'Badminton', 'Ping pong', 'Handball'
         ]
     },
     {
         id: 'peliculas',
-        name: 'Películas',
+        name: 'Peliculas',
         icon: '🎬',
         color: '#9B59B6',
         words: [
             'Titanic', 'Avatar', 'Matrix', 'Star Wars', 'Harry Potter', 'El Padrino',
-            'Jurassic Park', 'Forrest Gump', 'El Rey León', 'Toy Story',
+            'Jurassic Park', 'Forrest Gump', 'El Rey Leon', 'Toy Story',
             'Frozen', 'Coco', 'Up', 'Shrek', 'Madagascar', 'Buscando a Nemo',
             'Los Vengadores', 'Spider-Man', 'Batman', 'Superman', 'Iron Man',
-            'Thor', 'Hulk', 'Rápidos y Furiosos', 'Misión Imposible', 'James Bond',
+            'Thor', 'Hulk', 'Rapidos y Furiosos', 'Mision Imposible', 'James Bond',
             'Indiana Jones', 'Piratas del Caribe', 'Gladiador', 'Rocky'
         ]
     },
     {
         id: 'paises',
-        name: 'Países',
+        name: 'Paises',
         icon: '🌍',
         color: '#3498DB',
         words: [
-            'España', 'Francia', 'Italia', 'Alemania', 'Inglaterra', 'Portugal',
-            'México', 'Argentina', 'Brasil', 'Colombia', 'Perú', 'Chile',
-            'Estados Unidos', 'Canadá', 'Japón', 'China', 'Corea', 'India',
-            'Australia', 'Egipto', 'Marruecos', 'Sudáfrica', 'Rusia', 'Grecia',
-            'Turquía', 'Tailandia', 'Vietnam', 'Indonesia', 'Filipinas', 'Cuba'
+            'Espana', 'Francia', 'Italia', 'Alemania', 'Inglaterra', 'Portugal',
+            'Mexico', 'Argentina', 'Brasil', 'Colombia', 'Peru', 'Chile',
+            'Estados Unidos', 'Canada', 'Japon', 'China', 'Corea', 'India',
+            'Australia', 'Egipto', 'Marruecos', 'Sudafrica', 'Rusia', 'Grecia',
+            'Turquia', 'Tailandia', 'Vietnam', 'Indonesia', 'Filipinas', 'Cuba'
         ]
     },
     {
@@ -82,11 +82,11 @@ export const themes: Theme[] = [
         icon: '👨‍⚕️',
         color: '#1ABC9C',
         words: [
-            'Médico', 'Abogado', 'Ingeniero', 'Profesor', 'Arquitecto', 'Chef',
-            'Policía', 'Bombero', 'Piloto', 'Astronauta', 'Dentista', 'Veterinario',
-            'Enfermero', 'Farmacéutico', 'Programador', 'Diseñador', 'Fotógrafo',
-            'Periodista', 'Actor', 'Músico', 'Cantante', 'Bailarín', 'Pintor',
-            'Escultor', 'Escritor', 'Electricista', 'Plomero', 'Carpintero', 'Mecánico'
+            'Medico', 'Abogado', 'Ingeniero', 'Profesor', 'Arquitecto', 'Chef',
+            'Policia', 'Bombero', 'Piloto', 'Astronauta', 'Dentista', 'Veterinario',
+            'Enfermero', 'Farmaceutico', 'Programador', 'Disenador', 'Fotografo',
+            'Periodista', 'Actor', 'Musico', 'Cantante', 'Bailarin', 'Pintor',
+            'Escultor', 'Escritor', 'Electricista', 'Plomero', 'Carpintero', 'Mecanico'
         ]
     },
     {
@@ -95,11 +95,11 @@ export const themes: Theme[] = [
         icon: '🏛️',
         color: '#E74C3C',
         words: [
-            'Hospital', 'Escuela', 'Supermercado', 'Aeropuerto', 'Estación de tren',
+            'Hospital', 'Escuela', 'Supermercado', 'Aeropuerto', 'Estacion de tren',
             'Biblioteca', 'Museo', 'Cine', 'Teatro', 'Estadio', 'Parque',
-            'Playa', 'Montaña', 'Restaurante', 'Hotel', 'Bank', 'Iglesia',
+            'Playa', 'Montana', 'Restaurante', 'Hotel', 'Banco', 'Iglesia',
             'Cementerio', 'Zoo', 'Circo', 'Casino', 'Gimnasio', 'Spa',
-            'Discoteca', 'Bar', 'Cafetería', 'Farmacia', 'Gasolinera', 'Prisión'
+            'Discoteca', 'Bar', 'Cafeteria', 'Farmacia', 'Gasolinera', 'Prision'
         ]
     },
     {
@@ -118,14 +118,14 @@ export const themes: Theme[] = [
     },
     {
         id: 'musica',
-        name: 'Música',
+        name: 'Musica',
         icon: '🎵',
         color: '#F39C12',
         words: [
-            'Rock', 'Pop', 'Reggaetón', 'Salsa', 'Bachata', 'Cumbia', 'Merengue',
-            'Hip Hop', 'Rap', 'Jazz', 'Blues', 'Clásica', 'Electrónica', 'Techno',
+            'Rock', 'Pop', 'Reggaeton', 'Salsa', 'Bachata', 'Cumbia', 'Merengue',
+            'Hip Hop', 'Rap', 'Jazz', 'Blues', 'Clasica', 'Electronica', 'Techno',
             'House', 'Country', 'Folk', 'Reggae', 'Punk', 'Metal', 'Indie',
-            'K-Pop', 'Trap', 'R&B', 'Soul', 'Gospel', 'Ópera', 'Flamenco', 'Tango'
+            'K-Pop', 'Trap', 'Soul', 'Gospel', 'Opera', 'Flamenco', 'Tango'
         ]
     },
     {
@@ -134,20 +134,20 @@ export const themes: Theme[] = [
         icon: '📦',
         color: '#27AE60',
         words: [
-            'Teléfono', 'Computadora', 'Televisor', 'Refrigerador', 'Microondas',
+            'Telefono', 'Computadora', 'Televisor', 'Refrigerador', 'Microondas',
             'Lavadora', 'Secadora', 'Aspiradora', 'Plancha', 'Licuadora',
             'Tostadora', 'Cafetera', 'Ventilador', 'Aire acondicionado', 'Calefactor',
-            'Lámpara', 'Reloj', 'Espejo', 'Silla', 'Mesa', 'Sofá', 'Cama',
+            'Lampara', 'Reloj', 'Espejo', 'Silla', 'Mesa', 'Sofa', 'Cama',
             'Almohada', 'Cobija', 'Toalla', 'Paraguas', 'Maleta', 'Mochila', 'Cartera'
         ]
     },
     {
         id: 'superheroes',
-        name: 'Superhéroes',
+        name: 'Superheroes',
         icon: '🦸',
         color: '#C0392B',
         words: [
-            'Superman', 'Batman', 'Spider-Man', 'Iron Man', 'Capitán América',
+            'Superman', 'Batman', 'Spider-Man', 'Iron Man', 'Capitan America',
             'Thor', 'Hulk', 'Wonder Woman', 'Aquaman', 'Flash', 'Green Lantern',
             'Black Panther', 'Doctor Strange', 'Ant-Man', 'Hawkeye', 'Black Widow',
             'Wolverine', 'Deadpool', 'Cyclops', 'Storm', 'Jean Grey', 'Magneto',
@@ -160,34 +160,34 @@ export const themes: Theme[] = [
         icon: '👔',
         color: '#16A085',
         words: [
-            'Camisa', 'Pantalón', 'Vestido', 'Falda', 'Chaqueta', 'Abrigo',
-            'Suéter', 'Camiseta', 'Jeans', 'Shorts', 'Corbata', 'Bufanda',
+            'Camisa', 'Pantalon', 'Vestido', 'Falda', 'Chaqueta', 'Abrigo',
+            'Sueter', 'Camiseta', 'Jeans', 'Shorts', 'Corbata', 'Bufanda',
             'Guantes', 'Gorra', 'Sombrero', 'Zapatos', 'Botas', 'Sandalias',
-            'Tacones', 'Tenis', 'Calcetines', 'Medias', 'Ropa interior', 'Pijama',
-            'Bata', 'Traje de baño', 'Bikini', 'Cinturón', 'Bolso', 'Mochila'
+            'Tacones', 'Tenis', 'Calcetines', 'Medias', 'Pijama',
+            'Bata', 'Traje de bano', 'Bikini', 'Cinturon', 'Bolso', 'Mochila'
         ]
     },
     {
         id: 'biblia',
-        name: 'Personajes Bíblicos',
+        name: 'Personajes Biblicos',
         icon: '✝️',
         color: '#D4AF37',
         words: [
-            'Jesús', 'Moisés', 'Abraham', 'David', 'Noé', 'Adán', 'Eva',
-            'María', 'José', 'Pedro', 'Pablo', 'Judas', 'Daniel', 'Jonás',
-            'Sansón', 'Goliat', 'Caín', 'Abel', 'Lázaro', 'Juan el Bautista'
+            'Jesus', 'Moises', 'Abraham', 'David', 'Noe', 'Adan', 'Eva',
+            'Maria', 'Jose', 'Pedro', 'Pablo', 'Judas', 'Daniel', 'Jonas',
+            'Sanson', 'Goliat', 'Cain', 'Abel', 'Lazaro', 'Juan el Bautista'
         ]
     },
     {
-        id: 'costeño',
-        name: 'Costa Caribe 🇨🇴',
+        id: 'costeno',
+        name: 'Costa Caribe',
         icon: '🌴',
         color: '#00BCD4',
         words: [
-            'Rebusque', 'Sancocho', 'Suero', 'Bollo', 'Arepa e huevo',
-            'Carimañola', 'Patacón', 'Chicharrón', 'Butifarra', 'Cayeye',
-            'Mojarra', 'Arroz de coco', 'Alegría', 'Champeta', 'Vallenato',
-            'Corroncho', 'Vieja guardia', 'Picó', 'Caseta', 'Mototaxi'
+            'Sancocho', 'Suero', 'Bollo', 'Arepa de huevo', 'Carimañola',
+            'Patacon', 'Chicharron', 'Butifarra', 'Cayeye', 'Mojarra',
+            'Arroz de coco', 'Alegria', 'Champeta', 'Vallenato', 'Pico',
+            'Caseta', 'Mototaxi', 'Hamaca', 'Carnaval', 'Cumbia'
         ]
     },
     {
