@@ -1,20 +1,82 @@
+import React from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { GameProvider, useGame } from './src/context/GameContext';
+import { SetupScreen } from './src/screens/SetupScreen';
+import { PlayerNamesScreen } from './src/screens/PlayerNamesScreen';
+import { ThemeSelectionScreen } from './src/screens/ThemeSelectionScreen';
+import { RoleDistributionScreen } from './src/screens/RoleDistributionScreen';
+import { PlayingScreen } from './src/screens/PlayingScreen';
+import { colors } from './src/styles/colors';
+
+const GameNavigator: React.FC = () => {
+  const { gameState, setPhase } = useGame();
+
+  const handleSetupNext = () => {
+    setPhase('player-names');
+  };
+
+  const handlePlayerNamesBack = () => {
+    setPhase('setup');
+  };
+
+  const handlePlayerNamesNext = () => {
+    setPhase('theme-selection');
+  };
+
+  const handleThemeBack = () => {
+    setPhase('player-names');
+  };
+
+  const handleThemeNext = () => {
+    setPhase('role-distribution');
+  };
+
+  const handleRoleBack = () => {
+    setPhase('theme-selection');
+  };
+
+  const handleRoleComplete = () => {
+    setPhase('playing');
+  };
+
+  const handleNewGame = () => {
+    setPhase('setup');
+  };
+
+  switch (gameState.phase) {
+    case 'setup':
+      return <SetupScreen onNext={handleSetupNext} />;
+    case 'player-names':
+      return <PlayerNamesScreen onBack={handlePlayerNamesBack} onNext={handlePlayerNamesNext} />;
+    case 'theme-selection':
+      return <ThemeSelectionScreen onBack={handleThemeBack} onNext={handleThemeNext} />;
+    case 'role-distribution':
+      return <RoleDistributionScreen onBack={handleRoleBack} onComplete={handleRoleComplete} />;
+    case 'playing':
+      return <PlayingScreen onNewGame={handleNewGame} />;
+    default:
+      return <SetupScreen onNext={handleSetupNext} />;
+  }
+};
 
 export default function App() {
   return (
-    <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
+    <SafeAreaProvider>
+      <GameProvider>
+        <SafeAreaView style={styles.container}>
+          <StatusBar style="light" />
+          <GameNavigator />
+        </SafeAreaView>
+      </GameProvider>
+    </SafeAreaProvider>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: colors.background,
   },
 });

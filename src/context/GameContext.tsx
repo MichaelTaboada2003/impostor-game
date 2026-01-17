@@ -1,0 +1,180 @@
+import React, { createContext, useContext, useState, ReactNode } from 'react';
+import { Player, GameConfig, GameState } from '../types/game';
+import { getRandomWord, themes } from '../data/themes';
+
+interface GameContextType {
+    gameState: GameState;
+    playerNames: string[];
+    setNumberOfPlayers: (num: number) => void;
+    setNumberOfImpostors: (num: number) => void;
+    setPlayerName: (index: number, name: string) => void;
+    selectTheme: (themeId: string) => void;
+    initializePlayers: () => void;
+    markPlayerAsSeen: (playerId: number) => void;
+    nextPlayer: () => void;
+    previousPlayer: () => void;
+    setPhase: (phase: GameState['phase']) => void;
+    resetGame: () => void;
+    getCurrentPlayer: () => Player | null;
+}
+
+const initialGameState: GameState = {
+    config: {
+        numberOfPlayers: 4,
+        numberOfImpostors: 1,
+        themeId: '',
+    },
+    players: [],
+    secretWord: '',
+    currentPlayerIndex: 0,
+    phase: 'setup',
+};
+
+const GameContext = createContext<GameContextType | undefined>(undefined);
+
+export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+    const [gameState, setGameState] = useState<GameState>(initialGameState);
+    const [playerNames, setPlayerNames] = useState<string[]>(
+        Array.from({ length: 4 }, (_, i) => `Jugador ${i + 1}`)
+    );
+
+    const setNumberOfPlayers = (num: number) => {
+        setGameState(prev => ({
+            ...prev,
+            config: { ...prev.config, numberOfPlayers: num },
+        }));
+        // Ajustar el array de nombres
+        setPlayerNames(prev => {
+            const newNames = [...prev];
+            if (num > prev.length) {
+                // Agregar nuevos nombres
+                for (let i = prev.length; i < num; i++) {
+                    newNames.push(`Jugador ${i + 1}`);
+                }
+            } else if (num < prev.length) {
+                // Recortar nombres
+                newNames.length = num;
+            }
+            return newNames;
+        });
+    };
+
+    const setNumberOfImpostors = (num: number) => {
+        setGameState(prev => ({
+            ...prev,
+            config: { ...prev.config, numberOfImpostors: num },
+        }));
+    };
+
+    const setPlayerName = (index: number, name: string) => {
+        setPlayerNames(prev => {
+            const newNames = [...prev];
+            newNames[index] = name;
+            return newNames;
+        });
+    };
+
+    const selectTheme = (themeId: string) => {
+        const word = getRandomWord(themeId);
+        setGameState(prev => ({
+            ...prev,
+            config: { ...prev.config, themeId },
+            secretWord: word,
+            phase: 'role-distribution',
+        }));
+    };
+
+    const initializePlayers = () => {
+        const { numberOfPlayers, numberOfImpostors } = gameState.config;
+
+        // Crear array de índices y seleccionar impostores aleatoriamente
+        const impostorIndices: Set<number> = new Set();
+        while (impostorIndices.size < numberOfImpostors) {
+            impostorIndices.add(Math.floor(Math.random() * numberOfPlayers));
+        }
+
+        const players: Player[] = Array.from({ length: numberOfPlayers }, (_, i) => ({
+            id: i,
+            name: playerNames[i] || `Jugador ${i + 1}`,
+            isImpostor: impostorIndices.has(i),
+            word: impostorIndices.has(i) ? '???' : gameState.secretWord,
+            hasSeenWord: false,
+        }));
+
+        setGameState(prev => ({
+            ...prev,
+            players,
+            currentPlayerIndex: 0,
+        }));
+    };
+
+    const markPlayerAsSeen = (playerId: number) => {
+        setGameState(prev => ({
+            ...prev,
+            players: prev.players.map(p =>
+                p.id === playerId ? { ...p, hasSeenWord: true } : p
+            ),
+        }));
+    };
+
+    const nextPlayer = () => {
+        setGameState(prev => {
+            const nextIndex = prev.currentPlayerIndex + 1;
+            if (nextIndex >= prev.players.length) {
+                return { ...prev, phase: 'playing' };
+            }
+            return { ...prev, currentPlayerIndex: nextIndex };
+        });
+    };
+
+    const previousPlayer = () => {
+        setGameState(prev => ({
+            ...prev,
+            currentPlayerIndex: Math.max(0, prev.currentPlayerIndex - 1),
+        }));
+    };
+
+    const setPhase = (phase: GameState['phase']) => {
+        setGameState(prev => ({ ...prev, phase }));
+    };
+
+    const resetGame = () => {
+        setGameState(initialGameState);
+        setPlayerNames(Array.from({ length: 4 }, (_, i) => `Jugador ${i + 1}`));
+    };
+
+    const getCurrentPlayer = (): Player | null => {
+        if (gameState.players.length === 0) return null;
+        return gameState.players[gameState.currentPlayerIndex] || null;
+    };
+
+    return (
+        <GameContext.Provider
+            value={{
+                gameState,
+                playerNames,
+                setNumberOfPlayers,
+                setNumberOfImpostors,
+                setPlayerName,
+                selectTheme,
+                initializePlayers,
+                markPlayerAsSeen,
+                nextPlayer,
+                previousPlayer,
+                setPhase,
+                resetGame,
+                getCurrentPlayer,
+            }}
+        >
+            {children}
+        </GameContext.Provider>
+    );
+};
+
+export const useGame = () => {
+    const context = useContext(GameContext);
+    if (!context) {
+        throw new Error('useGame must be used within a GameProvider');
+    }
+    return context;
+};
