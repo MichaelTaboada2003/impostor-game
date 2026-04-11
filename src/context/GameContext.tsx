@@ -7,6 +7,7 @@ interface GameContextType {
     playerNames: string[];
     setNumberOfPlayers: (num: number) => void;
     setNumberOfImpostors: (num: number) => void;
+    setAllowHints: (allow: boolean) => void;
     setPlayerName: (index: number, name: string) => void;
     selectTheme: (themeId: string) => void;
     initializePlayers: () => void;
@@ -23,6 +24,7 @@ const initialGameState: GameState = {
         numberOfPlayers: 4,
         numberOfImpostors: 1,
         themeId: '',
+        allowHints: true,
     },
     players: [],
     secretWord: '',
@@ -64,6 +66,13 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setGameState(prev => ({
             ...prev,
             config: { ...prev.config, numberOfImpostors: num },
+        }));
+    };
+
+    const setAllowHints = (allow: boolean) => {
+        setGameState(prev => ({
+            ...prev,
+            config: { ...prev.config, allowHints: allow },
         }));
     };
 
@@ -154,6 +163,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 // Mantener el número de jugadores actual para que coincida con los nombres
                 numberOfPlayers: prev.config.numberOfPlayers,
                 numberOfImpostors: prev.config.numberOfImpostors,
+                allowHints: prev.config.allowHints,
             },
         }));
         // Los nombres NO se resetean — se conservan para la próxima partida
@@ -171,6 +181,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 playerNames,
                 setNumberOfPlayers,
                 setNumberOfImpostors,
+                setAllowHints,
                 setPlayerName,
                 selectTheme,
                 initializePlayers,

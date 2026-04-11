@@ -7,6 +7,7 @@ import {
     Dimensions,
     Animated,
     ScrollView,
+    Switch,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useGame } from '../context/GameContext';
@@ -19,7 +20,7 @@ interface SetupScreenProps {
 }
 
 export const SetupScreen: React.FC<SetupScreenProps> = ({ onNext }) => {
-    const { gameState, setNumberOfPlayers, setNumberOfImpostors } = useGame();
+    const { gameState, setNumberOfPlayers, setNumberOfImpostors, setAllowHints } = useGame();
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const scaleAnim = useRef(new Animated.Value(0.9)).current;
     const titleAnim = useRef(new Animated.Value(0)).current;
@@ -88,7 +89,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onNext }) => {
         ).start();
     }, []);
 
-    const { numberOfPlayers, numberOfImpostors } = gameState.config;
+    const { numberOfPlayers, numberOfImpostors, allowHints } = gameState.config;
 
     const incrementPlayers = () => {
         if (numberOfPlayers < 15) setNumberOfPlayers(numberOfPlayers + 1);
@@ -266,6 +267,39 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onNext }) => {
                             <Text style={styles.settingHint}>
                                 Máximo {Math.floor(numberOfPlayers / 2)} impostor(es)
                             </Text>
+                        </LinearGradient>
+                    </Animated.View>
+
+                    {/* Card de Pistas */}
+                    <Animated.View
+                        style={[
+                            styles.settingCard,
+                            { transform: [{ translateY: card2Anim }] }
+                        ]}
+                    >
+                        <LinearGradient
+                            colors={['rgba(241, 196, 15, 0.15)', 'rgba(241, 196, 15, 0.05)']}
+                            style={styles.cardGradient}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                        >
+                            <View style={[styles.cardHeader, { marginBottom: 0 }]}>
+                                <View style={[styles.iconBadge, { backgroundColor: 'rgba(241, 196, 15, 0.3)' }]}>
+                                    <Text style={styles.settingIcon}>💡</Text>
+                                </View>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={styles.settingLabel}>Permitir Pistas</Text>
+                                    <Text style={[styles.settingHint, { textAlign: 'left', marginTop: 2 }]}>
+                                        Solo para el Impostor
+                                    </Text>
+                                </View>
+                                <Switch
+                                    value={allowHints}
+                                    onValueChange={setAllowHints}
+                                    trackColor={{ false: 'rgba(255, 255, 255, 0.2)', true: '#F1C40F' }}
+                                    thumbColor={allowHints ? '#FFFFFF' : '#f4f3f4'}
+                                />
+                            </View>
                         </LinearGradient>
                     </Animated.View>
 

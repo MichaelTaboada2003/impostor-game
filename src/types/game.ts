@@ -11,6 +11,7 @@ export interface GameConfig {
     numberOfPlayers: number;
     numberOfImpostors: number;
     themeId: string;
+    allowHints: boolean;
 }
 
 export interface GameState {

@@ -39,7 +39,7 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
 
     const currentPlayer = getCurrentPlayer();
     const currentTheme = currentThemeData;
-    const hasHints = !currentThemeData?.noHints;
+    const hasHints = !currentThemeData?.noHints && (gameState.config.allowHints ?? true);
     const progress = ((gameState.currentPlayerIndex + 1) / gameState.players.length) * 100;
 
     useEffect(() => {
@@ -342,10 +342,10 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
                                             {currentPlayer.isImpostor ? '🔪 ERES EL IMPOSTOR' : '👤 ERES TRIPULANTE'}
                                         </Text>
                                         
-                                        {hasHints && currentPlayer.hint !== '' && (
+                                        {hasHints && currentPlayer.hint !== '' && currentPlayer.isImpostor && (
                                             <View style={styles.hintSectionInside}>
                                                 <View style={styles.hintDivider} />
-                                                <Text style={styles.hintInfoLabel}>💡 PISTA:</Text>
+                                                <Text style={styles.hintInfoLabel}>💡 PISTA PARA DISIMULAR:</Text>
                                                 <Text style={styles.hintInfoText}>{currentPlayer.hint}</Text>
                                             </View>
                                         )}
@@ -518,7 +518,7 @@ const styles = StyleSheet.create({
     },
     card: {
         width: width - 80,
-        minHeight: 360,
+        minHeight: 320,
         borderRadius: 28,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 15 },
@@ -568,7 +568,7 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        padding: 32,
+        padding: 24,
         borderRadius: 28,
     },
     cardPattern: {
@@ -606,16 +606,16 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     roleIconContainer: {
-        width: 100,
-        height: 100,
-        borderRadius: 50,
+        width: 80,
+        height: 80,
+        borderRadius: 40,
         backgroundColor: 'rgba(255, 255, 255, 0.2)',
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 16,
+        marginBottom: 12,
     },
     roleEmoji: {
-        fontSize: 50,
+        fontSize: 40,
     },
     roleTitle: {
         fontSize: 32,
@@ -637,7 +637,7 @@ const styles = StyleSheet.create({
     wordContainer: {
         alignItems: 'center',
         paddingHorizontal: 20,
-        paddingVertical: 24,
+        paddingVertical: 16,
     },
     wordLabel: {
         fontSize: 14,
@@ -648,14 +648,14 @@ const styles = StyleSheet.create({
         letterSpacing: 1,
     },
     wordText: {
-        fontSize: 36,
+        fontSize: 30,
         fontWeight: '900',
         color: '#FFFFFF',
         textAlign: 'center',
     },
     impostorWarningContainer: {
         backgroundColor: 'rgba(255, 71, 87, 0.2)',
-        paddingVertical: 16,
+        paddingVertical: 12,
         paddingHorizontal: 20,
         borderBottomLeftRadius: 20,
         borderBottomRightRadius: 20,
@@ -686,14 +686,14 @@ const styles = StyleSheet.create({
         letterSpacing: 1,
     },
     hintInfoText: {
-        fontSize: 18,
+        fontSize: 16,
         color: '#FFFFFF',
         textAlign: 'center',
         fontWeight: '600',
     },
     hintStatusContainer: {
         backgroundColor: 'rgba(255, 255, 255, 0.05)',
-        paddingVertical: 16,
+        paddingVertical: 12,
         paddingHorizontal: 20,
         borderBottomLeftRadius: 20,
         borderBottomRightRadius: 20,
