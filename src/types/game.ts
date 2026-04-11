@@ -3,6 +3,7 @@ export interface Player {
     name: string;
     isImpostor: boolean;
     word: string;
+    hint: string;
     hasSeenWord: boolean;
 }
 
@@ -16,6 +17,7 @@ export interface GameState {
     config: GameConfig;
     players: Player[];
     secretWord: string;
+    secretHint: string;
     currentPlayerIndex: number;
     phase: 'setup' | 'player-names' | 'theme-selection' | 'role-distribution' | 'playing' | 'voting' | 'results';
 }

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { Player, GameConfig, GameState } from '../types/game';
-import { getRandomWord, themes } from '../data/themes';
+import { getRandomWordEntry, themes } from '../data/themes';
 
 interface GameContextType {
     gameState: GameState;
@@ -26,6 +26,7 @@ const initialGameState: GameState = {
     },
     players: [],
     secretWord: '',
+    secretHint: '',
     currentPlayerIndex: 0,
     phase: 'setup',
 };
@@ -75,11 +76,12 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
 
     const selectTheme = (themeId: string) => {
-        const word = getRandomWord(themeId);
+        const entry = getRandomWordEntry(themeId);
         setGameState(prev => ({
             ...prev,
             config: { ...prev.config, themeId },
-            secretWord: word,
+            secretWord: entry.word,
+            secretHint: entry.hint,
             phase: 'role-distribution',
         }));
     };
@@ -98,6 +100,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             name: playerNames[i] || `Jugador ${i + 1}`,
             isImpostor: impostorIndices.has(i),
             word: impostorIndices.has(i) ? '???' : gameState.secretWord,
+            hint: impostorIndices.has(i) ? '' : gameState.secretHint,
             hasSeenWord: false,
         }));
 
@@ -139,8 +142,17 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
 
     const resetGame = () => {
-        setGameState(initialGameState);
-        setPlayerNames(Array.from({ length: 4 }, (_, i) => `Jugador ${i + 1}`));
+        // Preservar los nombres de jugadores al iniciar nueva partida
+        setGameState(prev => ({
+            ...initialGameState,
+            config: {
+                ...initialGameState.config,
+                // Mantener el número de jugadores actual para que coincida con los nombres
+                numberOfPlayers: prev.config.numberOfPlayers,
+                numberOfImpostors: prev.config.numberOfImpostors,
+            },
+        }));
+        // Los nombres NO se resetean — se conservan para la próxima partida
     };
 
     const getCurrentPlayer = (): Player | null => {

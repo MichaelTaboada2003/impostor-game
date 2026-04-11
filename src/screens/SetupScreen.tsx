@@ -124,6 +124,11 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onNext }) => {
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
         >
+            {/* Version badge */}
+            <View style={styles.versionBadge}>
+                <Text style={styles.versionText}>v1.2</Text>
+            </View>
+
             {/* Background decorative elements */}
             <Animated.View style={[styles.bgCircle1, { opacity: glowOpacity }]} />
             <Animated.View style={[styles.bgCircle2, { opacity: glowOpacity }]} />
@@ -392,6 +397,21 @@ const styles = StyleSheet.create({
         color: 'rgba(255, 255, 255, 0.6)',
         marginTop: 8,
         textAlign: 'center',
+    },
+    versionBadge: {
+        position: 'absolute',
+        top: 50,
+        right: 20,
+        zIndex: 100,
+        backgroundColor: 'rgba(108, 92, 231, 0.3)',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 12,
+    },
+    versionText: {
+        fontSize: 11,
+        color: 'rgba(255, 255, 255, 0.7)',
+        fontWeight: '600',
     },
     settingCard: {
         marginBottom: 16,

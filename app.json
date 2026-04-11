@@ -21,10 +21,22 @@
         "backgroundColor": "#0F0F1A"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.michaeltaboada.impostorgame"
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "69ee6be0-2541-4758-ab41-ba471436941e"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/69ee6be0-2541-4758-ab41-ba471436941e"
     }
   }
 }

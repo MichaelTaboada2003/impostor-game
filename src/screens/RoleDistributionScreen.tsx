@@ -27,6 +27,7 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
     onComplete,
 }) => {
     const { gameState, markPlayerAsSeen, nextPlayer, getCurrentPlayer } = useGame();
+    const currentThemeData = themes.find(t => t.id === gameState.config.themeId);
     const [cardState, setCardState] = useState<CardState>('waiting');
     const holdProgress = useRef(new Animated.Value(0)).current;
     const cardOpacity = useRef(new Animated.Value(1)).current;
@@ -37,7 +38,8 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
     const pulseAnim = useRef(new Animated.Value(1)).current;
 
     const currentPlayer = getCurrentPlayer();
-    const currentTheme = themes.find(t => t.id === gameState.config.themeId);
+    const currentTheme = currentThemeData;
+    const hasHints = !currentThemeData?.noHints;
     const progress = ((gameState.currentPlayerIndex + 1) / gameState.players.length) * 100;
 
     useEffect(() => {
@@ -333,6 +335,14 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
                                     </Text>
                                 </View>
 
+                                {/* Pista para tripulantes */}
+                                {!currentPlayer.isImpostor && hasHints && currentPlayer.hint !== '' && (
+                                    <View style={styles.hintContainer}>
+                                        <Text style={styles.hintLabel}>💡 Pista:</Text>
+                                        <Text style={styles.hintText}>{currentPlayer.hint}</Text>
+                                    </View>
+                                )}
+
                                 {currentPlayer.isImpostor && (
                                     <View style={styles.impostorHintContainer}>
                                         <Text style={styles.impostorHint}>
@@ -481,7 +491,7 @@ const styles = StyleSheet.create({
     },
     card: {
         width: width - 80,
-        height: 360,
+        minHeight: 360,
         borderRadius: 28,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 15 },
@@ -578,6 +588,30 @@ const styles = StyleSheet.create({
         fontWeight: '900',
         color: '#FFFFFF',
         textAlign: 'center',
+    },
+    hintContainer: {
+        backgroundColor: 'rgba(255, 255, 255, 0.15)',
+        paddingHorizontal: 20,
+        paddingVertical: 12,
+        borderRadius: 12,
+        marginBottom: 12,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.25)',
+    },
+    hintLabel: {
+        fontSize: 12,
+        color: 'rgba(255, 255, 255, 0.7)',
+        fontWeight: '700',
+        letterSpacing: 1,
+        marginBottom: 4,
+        textTransform: 'uppercase',
+    },
+    hintText: {
+        fontSize: 14,
+        color: '#FFFFFF',
+        textAlign: 'center',
+        lineHeight: 20,
     },
     impostorHintContainer: {
         backgroundColor: 'rgba(0, 0, 0, 0.3)',
