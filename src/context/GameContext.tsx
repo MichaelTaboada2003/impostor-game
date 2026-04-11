@@ -77,6 +77,8 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const selectTheme = (themeId: string) => {
         const entry = getRandomWordEntry(themeId);
+        
+        // Actualizar el estado del juego
         setGameState(prev => ({
             ...prev,
             config: { ...prev.config, themeId },
@@ -84,12 +86,9 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             secretHint: entry.hint,
             phase: 'role-distribution',
         }));
-    };
 
-    const initializePlayers = () => {
+        // Inicializar jugadores inmediatamente con los datos frescos (evitando delay de state)
         const { numberOfPlayers, numberOfImpostors } = gameState.config;
-
-        // Crear array de índices y seleccionar impostores aleatoriamente
         const impostorIndices: Set<number> = new Set();
         while (impostorIndices.size < numberOfImpostors) {
             impostorIndices.add(Math.floor(Math.random() * numberOfPlayers));
@@ -99,8 +98,8 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             id: i,
             name: playerNames[i] || `Jugador ${i + 1}`,
             isImpostor: impostorIndices.has(i),
-            word: impostorIndices.has(i) ? '???' : gameState.secretWord,
-            hint: impostorIndices.has(i) ? '' : gameState.secretHint,
+            word: impostorIndices.has(i) ? '???' : entry.word,
+            hint: entry.hint,
             hasSeenWord: false,
         }));
 
@@ -109,6 +108,11 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             players,
             currentPlayerIndex: 0,
         }));
+    };
+
+    const initializePlayers = () => {
+        // Esta función ahora es redundante pero la mantenemos para compatibilidad
+        // si se llama desde otros sitios, aunque ahora selectTheme hace el trabajo sucio.
     };
 
     const markPlayerAsSeen = (playerId: number) => {

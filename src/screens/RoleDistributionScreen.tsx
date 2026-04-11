@@ -226,7 +226,6 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
                     <Text style={styles.playerInstruction}>
                         {cardState === 'waiting' && '👆 Manten presionada la carta'}
                         {cardState === 'revealing' && '⏳ Sigue manteniendo...'}
-                        {cardState === 'revealed' && '🧠 Memoriza tu informacion'}
                     </Text>
                 </View>
 
@@ -324,32 +323,34 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
                                     {currentPlayer.isImpostor ? '¡IMPOSTOR!' : 'TRIPULANTE'}
                                 </Text>
 
-                                <View style={styles.wordContainer}>
-                                    <Text style={styles.wordLabel}>
-                                        {currentPlayer.isImpostor
-                                            ? 'Tu palabra es:'
-                                            : 'La palabra secreta es:'}
-                                    </Text>
-                                    <Text style={styles.wordText}>
-                                        {currentPlayer.isImpostor ? '???' : gameState.secretWord}
-                                    </Text>
-                                </View>
-
-                                {/* Pista para tripulantes */}
-                                {!currentPlayer.isImpostor && hasHints && currentPlayer.hint !== '' && (
-                                    <View style={styles.hintContainer}>
-                                        <Text style={styles.hintLabel}>💡 Pista:</Text>
-                                        <Text style={styles.hintText}>{currentPlayer.hint}</Text>
-                                    </View>
-                                )}
-
-                                {currentPlayer.isImpostor && (
-                                    <View style={styles.impostorHintContainer}>
-                                        <Text style={styles.impostorHint}>
-                                            ⚠️ No conoces la palabra. ¡Disimula!
+                                {/* Contenedor de información para el jugador */}
+                                <View style={styles.infoWrapper}>
+                                    <View style={styles.wordContainer}>
+                                        <Text style={styles.wordLabel}>
+                                            {currentPlayer.isImpostor
+                                                ? 'Tu palabra es:'
+                                                : 'La palabra secreta es:'}
+                                        </Text>
+                                        <Text style={styles.wordText}>
+                                            {currentPlayer.isImpostor ? '???' : gameState.secretWord}
                                         </Text>
                                     </View>
-                                )}
+
+                                    {/* Estado y Pista (Unificados) */}
+                                    <View style={currentPlayer.isImpostor ? styles.impostorWarningContainer : styles.hintStatusContainer}>
+                                        <Text style={currentPlayer.isImpostor ? styles.impostorWarning : styles.roleStatusText}>
+                                            {currentPlayer.isImpostor ? '🔪 ERES EL IMPOSTOR' : '👤 ERES TRIPULANTE'}
+                                        </Text>
+                                        
+                                        {hasHints && currentPlayer.hint !== '' && (
+                                            <View style={styles.hintSectionInside}>
+                                                <View style={styles.hintDivider} />
+                                                <Text style={styles.hintInfoLabel}>💡 PISTA:</Text>
+                                                <Text style={styles.hintInfoText}>{currentPlayer.hint}</Text>
+                                            </View>
+                                        )}
+                                    </View>
+                                </View>
                             </View>
                         </LinearGradient>
                     </Animated.View>
@@ -626,59 +627,95 @@ const styles = StyleSheet.create({
         textShadowRadius: 4,
         letterSpacing: 2,
     },
+    infoWrapper: {
+        width: '100%',
+        backgroundColor: 'rgba(0, 0, 0, 0.25)',
+        borderRadius: 24,
+        padding: 4,
+        overflow: 'hidden',
+    },
     wordContainer: {
         alignItems: 'center',
-        backgroundColor: 'rgba(0, 0, 0, 0.25)',
-        paddingHorizontal: 32,
-        paddingVertical: 20,
-        borderRadius: 20,
-        marginBottom: 16,
+        paddingHorizontal: 20,
+        paddingVertical: 24,
     },
     wordLabel: {
         fontSize: 14,
-        color: 'rgba(255, 255, 255, 0.7)',
+        color: 'rgba(255, 255, 255, 0.5)',
+        fontWeight: '600',
         marginBottom: 8,
+        textTransform: 'uppercase',
+        letterSpacing: 1,
     },
     wordText: {
-        fontSize: 28,
+        fontSize: 36,
         fontWeight: '900',
         color: '#FFFFFF',
         textAlign: 'center',
     },
-    hintContainer: {
-        backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    impostorWarningContainer: {
+        backgroundColor: 'rgba(255, 71, 87, 0.2)',
+        paddingVertical: 16,
         paddingHorizontal: 20,
-        paddingVertical: 12,
-        borderRadius: 12,
-        marginBottom: 12,
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.25)',
+        borderBottomLeftRadius: 20,
+        borderBottomRightRadius: 20,
+        borderTopWidth: 1,
+        borderColor: 'rgba(255, 71, 87, 0.2)',
     },
-    hintLabel: {
-        fontSize: 12,
-        color: 'rgba(255, 255, 255, 0.7)',
+    impostorWarning: {
+        fontSize: 15,
+        color: '#FF6B81',
+        textAlign: 'center',
         fontWeight: '700',
-        letterSpacing: 1,
-        marginBottom: 4,
-        textTransform: 'uppercase',
     },
-    hintText: {
-        fontSize: 14,
+    hintInfoContainer: {
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        paddingVertical: 16,
+        paddingHorizontal: 20,
+        borderBottomLeftRadius: 20,
+        borderBottomRightRadius: 20,
+        borderTopWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.1)',
+        alignItems: 'center',
+    },
+    hintInfoLabel: {
+        fontSize: 11,
+        color: 'rgba(255, 255, 255, 0.4)',
+        fontWeight: '800',
+        marginBottom: 4,
+        letterSpacing: 1,
+    },
+    hintInfoText: {
+        fontSize: 18,
         color: '#FFFFFF',
         textAlign: 'center',
-        lineHeight: 20,
+        fontWeight: '600',
     },
-    impostorHintContainer: {
-        backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    hintStatusContainer: {
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        paddingVertical: 16,
         paddingHorizontal: 20,
-        paddingVertical: 12,
-        borderRadius: 12,
+        borderBottomLeftRadius: 20,
+        borderBottomRightRadius: 20,
+        borderTopWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.1)',
+        alignItems: 'center',
     },
-    impostorHint: {
+    roleStatusText: {
         fontSize: 14,
-        color: 'rgba(255, 255, 255, 0.9)',
-        textAlign: 'center',
+        color: 'rgba(255, 255, 255, 0.6)',
+        fontWeight: '800',
+        letterSpacing: 1.5,
+    },
+    hintSectionInside: {
+        width: '100%',
+        alignItems: 'center',
+    },
+    hintDivider: {
+        width: '40%',
+        height: 1,
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        marginVertical: 12,
     },
     nextButtonContainer: {
         paddingTop: 20,
