@@ -126,7 +126,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onNext }) => {
         >
             {/* Version badge */}
             <View style={styles.versionBadge}>
-                <Text style={styles.versionText}>v1.2</Text>
+                <Text style={styles.versionText}>v1.3</Text>
             </View>
 
             {/* Background decorative elements */}
