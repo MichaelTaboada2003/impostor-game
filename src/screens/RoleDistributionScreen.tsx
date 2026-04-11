@@ -355,6 +355,32 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
                     </Animated.View>
                 </View>
 
+                {/* Main Action Button (Hold to reveal) */}
+                {cardState !== 'revealed' && (
+                    <Animated.View style={styles.actionButtonContainer}>
+                        <TouchableOpacity
+                            style={styles.actionButton}
+                            onPressIn={startHold}
+                            onPressOut={cancelHold}
+                            activeOpacity={0.9}
+                        >
+                            <LinearGradient
+                                colors={['#6C5CE7', '#8E44AD']}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 0 }}
+                                style={styles.actionButtonGradient}
+                            >
+                                <Text style={styles.actionButtonText}>
+                                    {cardState === 'waiting' ? '🔽 MANTÉN PARA REVELAR' : '⏳ REVELANDO...'}
+                                </Text>
+                            </LinearGradient>
+                        </TouchableOpacity>
+                        <Text style={styles.actionButtonHelp}>
+                            O mantén presionada la carta👆
+                        </Text>
+                    </Animated.View>
+                )}
+
                 {/* Next button */}
                 {cardState === 'revealed' && (
                     <Animated.View style={styles.nextButtonContainer}>
@@ -498,6 +524,36 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.4,
         shadowRadius: 25,
         elevation: 20,
+    },
+    actionButtonContainer: {
+        alignItems: 'center',
+        marginTop: 20,
+    },
+    actionButton: {
+        width: width - 80,
+        borderRadius: 20,
+        overflow: 'hidden',
+        shadowColor: '#6C5CE7',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 5,
+    },
+    actionButtonGradient: {
+        paddingVertical: 18,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    actionButtonText: {
+        fontSize: 16,
+        fontWeight: '800',
+        color: '#FFFFFF',
+        letterSpacing: 1,
+    },
+    actionButtonHelp: {
+        fontSize: 12,
+        color: 'rgba(255, 255, 255, 0.4)',
+        marginTop: 8,
     },
     cardRevealed: {
         position: 'absolute',
