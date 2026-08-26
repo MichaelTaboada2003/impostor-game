@@ -11,9 +11,10 @@ import {
     Modal,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import { useGame } from '../context/GameContext';
 import { Player } from '../types/game';
-import { colors } from '../styles/colors';
+import { colors, gradients } from '../styles/colors';
 
 const { width } = Dimensions.get('window');
 
@@ -34,31 +35,18 @@ export const VotingScreen: React.FC<VotingScreenProps> = ({
     const [revealedStatus, setRevealedStatus] = useState(false);
 
     const fadeAnim = useRef(new Animated.Value(0)).current;
-    const pulseAnim = useRef(new Animated.Value(1)).current;
-    const sirenAnim = useRef(new Animated.Value(0)).current;
     const shakeAnim = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
-        Animated.timing(fadeAnim, {
-            toValue: 1,
-            duration: 400,
-            useNativeDriver: true,
-        }).start();
-
-        Animated.loop(
-            Animated.sequence([
-                Animated.timing(sirenAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
-                Animated.timing(sirenAnim, { toValue: 0.3, duration: 800, useNativeDriver: true }),
-            ])
-        ).start();
+        Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
     }, []);
 
     const totalPlayers = gameState.players.length;
     const currentVoter = gameState.players[activeVoterIndex];
 
     const handleSelectVote = (suspectId: number) => {
+        Vibration.vibrate(25);
         setSelectedSuspectId(suspectId);
-        Vibration.vibrate(30);
     };
 
     const handleConfirmVote = () => {
@@ -70,29 +58,27 @@ export const VotingScreen: React.FC<VotingScreenProps> = ({
         if (activeVoterIndex < totalPlayers - 1) {
             setActiveVoterIndex(prev => prev + 1);
         } else {
-            // All players voted -> Trigger Ejection Sequence
             const result = calculateVotingResults();
             setEjectedPlayer(result.ejectedPlayer);
             setShowEjectionModal(true);
             setRevealedStatus(false);
-            Vibration.vibrate([0, 150, 100, 200, 100, 400]);
+            Vibration.vibrate([0, 100, 80, 150, 80, 300]);
         }
     };
 
     const handleRevealEjection = () => {
         setRevealedStatus(true);
         if (ejectedPlayer?.isImpostor) {
-            Vibration.vibrate([0, 100, 50, 100, 50, 300]);
+            Vibration.vibrate([0, 80, 40, 80, 40, 200]);
         } else {
-            Vibration.vibrate([0, 300, 100, 300]);
+            Vibration.vibrate([0, 200, 100, 200]);
         }
 
-        // Shake animation
         Animated.sequence([
-            Animated.timing(shakeAnim, { toValue: 10, duration: 50, useNativeDriver: true }),
-            Animated.timing(shakeAnim, { toValue: -10, duration: 50, useNativeDriver: true }),
-            Animated.timing(shakeAnim, { toValue: 10, duration: 50, useNativeDriver: true }),
-            Animated.timing(shakeAnim, { toValue: 0, duration: 50, useNativeDriver: true }),
+            Animated.timing(shakeAnim, { toValue: 8, duration: 40, useNativeDriver: true }),
+            Animated.timing(shakeAnim, { toValue: -8, duration: 40, useNativeDriver: true }),
+            Animated.timing(shakeAnim, { toValue: 6, duration: 40, useNativeDriver: true }),
+            Animated.timing(shakeAnim, { toValue: 0, duration: 40, useNativeDriver: true }),
         ]).start();
     };
 
@@ -102,54 +88,54 @@ export const VotingScreen: React.FC<VotingScreenProps> = ({
     };
 
     return (
-        <LinearGradient
-            colors={['#0a0a1a', '#1a1a3a', '#0f0f2a']}
-            style={styles.container}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-        >
-            <View style={styles.bgCircle1} />
-            <View style={styles.bgCircle2} />
+        <View style={styles.container}>
+            <LinearGradient
+                colors={gradients.appBackground}
+                style={StyleSheet.absoluteFillObject}
+            />
 
             <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
                 {/* Header */}
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={onBackToDiscussion} style={styles.backBtn}>
-                        <Text style={styles.backBtnText}>← Volver a Debate</Text>
+                    <TouchableOpacity onPress={onBackToDiscussion} style={styles.backBtn} activeOpacity={0.7}>
+                        <Ionicons name="arrow-back" size={16} color={colors.textSecondary} />
+                        <Text style={styles.backBtnText}>Volver a Debate</Text>
                     </TouchableOpacity>
 
-                    <View style={styles.titleRow}>
-                        <Text style={styles.titleEmoji}>🗳️</Text>
-                        <View>
-                            <Text style={styles.title}>Fase de Votación</Text>
-                            <Text style={styles.subtitle}>
-                                Turno de votar: <Text style={styles.activeVoterName}>{currentVoter?.name}</Text>
-                            </Text>
+                    <View style={styles.voterHeaderCard}>
+                        <View style={styles.voterTagRow}>
+                            <View style={styles.voterBadge}>
+                                <Text style={styles.voterBadgeText}>
+                                    VOTO {activeVoterIndex + 1} DE {totalPlayers}
+                                </Text>
+                            </View>
+                        </View>
+                        <Text style={styles.title}>Fase de Votación</Text>
+                        <Text style={styles.subtitle}>
+                            Turno de <Text style={styles.highlightName}>{currentVoter?.name}</Text>
+                        </Text>
+
+                        {/* Progress */}
+                        <View style={styles.progressBarBg}>
+                            <View
+                                style={[
+                                    styles.progressBarFill,
+                                    { width: `${((activeVoterIndex + 1) / totalPlayers) * 100}%` },
+                                ]}
+                            />
                         </View>
                     </View>
+                </View>
 
-                    {/* Progress */}
-                    <View style={styles.voterProgressBar}>
-                        <View
-                            style={[
-                                styles.voterProgressFill,
-                                { width: `${((activeVoterIndex + 1) / totalPlayers) * 100}%` },
-                            ]}
-                        />
-                    </View>
-                    <Text style={styles.voterProgressText}>
-                        Voto {activeVoterIndex + 1} de {totalPlayers}
+                {/* Prompt Card */}
+                <View style={styles.promptCard}>
+                    <Ionicons name="finger-print" size={18} color={colors.impostor} style={{ marginRight: 8 }} />
+                    <Text style={styles.promptText}>
+                        ¿Quién es el sospechoso de ser el Impostor?
                     </Text>
                 </View>
 
-                {/* Question */}
-                <View style={styles.questionCard}>
-                    <Text style={styles.questionText}>
-                        {currentVoter?.name}, ¿quién crees que es el Impostor?
-                    </Text>
-                </View>
-
-                {/* Suspects Grid */}
+                {/* Suspects List */}
                 <ScrollView
                     style={styles.suspectsScroll}
                     contentContainerStyle={styles.suspectsGrid}
@@ -173,12 +159,10 @@ export const VotingScreen: React.FC<VotingScreenProps> = ({
                                 <LinearGradient
                                     colors={
                                         isSelected
-                                            ? ['rgba(255, 71, 87, 0.4)', 'rgba(255, 71, 87, 0.15)']
-                                            : isSelf
-                                            ? ['rgba(255, 255, 255, 0.03)', 'rgba(255, 255, 255, 0.01)']
-                                            : ['rgba(255, 255, 255, 0.08)', 'rgba(255, 255, 255, 0.03)']
+                                            ? ['rgba(255, 42, 85, 0.3)', 'rgba(255, 42, 85, 0.08)']
+                                            : gradients.cardGlass
                                     }
-                                    style={styles.suspectCardGradient}
+                                    style={styles.suspectGradient}
                                 >
                                     <View
                                         style={[
@@ -191,24 +175,27 @@ export const VotingScreen: React.FC<VotingScreenProps> = ({
                                         </Text>
                                     </View>
 
-                                    <Text
-                                        style={[
-                                            styles.suspectName,
-                                            isSelected && styles.suspectNameSelected,
-                                        ]}
-                                        numberOfLines={1}
-                                    >
-                                        {player.name}
-                                    </Text>
+                                    <View style={{ flex: 1 }}>
+                                        <Text
+                                            style={[
+                                                styles.suspectName,
+                                                isSelected && { color: colors.impostorLight },
+                                            ]}
+                                            numberOfLines={1}
+                                        >
+                                            {player.name}
+                                        </Text>
+                                        {isSelf && (
+                                            <Text style={styles.selfLabel}>Tu voto</Text>
+                                        )}
+                                    </View>
 
-                                    {isSelf && (
-                                        <Text style={styles.selfBadge}>(Tú)</Text>
-                                    )}
-
-                                    {isSelected && (
-                                        <View style={styles.suspectTag}>
-                                            <Text style={styles.suspectTagText}>🎯 Sospechoso</Text>
+                                    {isSelected ? (
+                                        <View style={styles.suspectTagBox}>
+                                            <Ionicons name="checkmark-circle" size={18} color={colors.impostor} />
                                         </View>
+                                    ) : (
+                                        <View style={styles.emptyCheckRadio} />
                                     )}
                                 </LinearGradient>
                             </TouchableOpacity>
@@ -216,8 +203,8 @@ export const VotingScreen: React.FC<VotingScreenProps> = ({
                     })}
                 </ScrollView>
 
-                {/* Footer Action */}
-                <View style={styles.footer}>
+                {/* Fixed Bottom CTA Bar */}
+                <View style={styles.bottomBar}>
                     <TouchableOpacity
                         style={[
                             styles.confirmVoteBtn,
@@ -230,24 +217,35 @@ export const VotingScreen: React.FC<VotingScreenProps> = ({
                         <LinearGradient
                             colors={
                                 selectedSuspectId !== null
-                                    ? ['#FF4757', '#C0392B']
-                                    : ['#3A3A55', '#2A2A40']
+                                    ? ['#FF2A55', '#D6133C']
+                                    : ['#232635', '#161822']
                             }
                             start={{ x: 0, y: 0 }}
                             end={{ x: 1, y: 0 }}
                             style={styles.confirmVoteGradient}
                         >
-                            <Text style={styles.confirmVoteText}>
+                            <Text
+                                style={[
+                                    styles.confirmVoteText,
+                                    selectedSuspectId === null && { color: colors.textDisabled },
+                                ]}
+                            >
                                 {activeVoterIndex < totalPlayers - 1
-                                    ? 'Confirmar Voto y Siguiente →'
-                                    : '⚖️ Ver Veredicto Final'}
+                                    ? 'Confirmar Voto'
+                                    : 'Ver Veredicto del Grupo'}
                             </Text>
+                            <Ionicons
+                                name="arrow-forward"
+                                size={18}
+                                color={selectedSuspectId !== null ? '#FFFFFF' : colors.textDisabled}
+                                style={{ marginLeft: 8 }}
+                            />
                         </LinearGradient>
                     </TouchableOpacity>
                 </View>
             </Animated.View>
 
-            {/* Ejection / Trial Modal */}
+            {/* Verdict / Trial Modal */}
             <Modal
                 visible={showEjectionModal}
                 transparent
@@ -261,15 +259,17 @@ export const VotingScreen: React.FC<VotingScreenProps> = ({
                         ]}
                     >
                         <LinearGradient
-                            colors={['#1c1c38', '#0f0f2a']}
+                            colors={gradients.sheetGlass}
                             style={styles.ejectionGradient}
                         >
-                            <Text style={styles.ejectionSiren}>🚨</Text>
-                            <Text style={styles.ejectionHeaderTitle}>VEREDICTO DEL GRUPO</Text>
+                            <View style={styles.verdictHeaderBox}>
+                                <MaterialCommunityIcons name="gavel" size={24} color={colors.impostor} />
+                                <Text style={styles.ejectionHeaderTitle}>VEREDICTO DEL GRUPO</Text>
+                            </View>
 
                             {ejectedPlayer ? (
                                 <>
-                                    <Text style={styles.ejectedLabel}>El jugador más votado es:</Text>
+                                    <Text style={styles.ejectedLabel}>El más votado por la tripulación es:</Text>
                                     <View style={styles.ejectedNameBox}>
                                         <Text style={styles.ejectedPlayerName}>{ejectedPlayer.name}</Text>
                                     </View>
@@ -278,50 +278,64 @@ export const VotingScreen: React.FC<VotingScreenProps> = ({
                                         <TouchableOpacity
                                             style={styles.revealIdentityBtn}
                                             onPress={handleRevealEjection}
-                                            activeOpacity={0.8}
+                                            activeOpacity={0.85}
                                         >
                                             <LinearGradient
-                                                colors={['#6C5CE7', '#FD79A8']}
+                                                colors={['#7952FF', '#FF2A55']}
+                                                start={{ x: 0, y: 0 }}
+                                                end={{ x: 1, y: 0 }}
                                                 style={styles.revealIdentityGradient}
                                             >
+                                                <Ionicons name="eye-outline" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
                                                 <Text style={styles.revealIdentityText}>
-                                                    🔍 Revelar si era el Impostor
+                                                    Revelar Identidad
                                                 </Text>
                                             </LinearGradient>
                                         </TouchableOpacity>
                                     ) : (
                                         <View style={styles.verdictResultBox}>
-                                            <Text style={styles.verdictBigEmoji}>
-                                                {ejectedPlayer.isImpostor ? '🔪' : '😇'}
-                                            </Text>
+                                            <View
+                                                style={[
+                                                    styles.verdictIconCircle,
+                                                    { backgroundColor: ejectedPlayer.isImpostor ? 'rgba(255, 42, 85, 0.2)' : 'rgba(0, 240, 255, 0.2)' },
+                                                ]}
+                                            >
+                                                {ejectedPlayer.isImpostor ? (
+                                                    <MaterialCommunityIcons name="knife-military" size={40} color={colors.impostor} />
+                                                ) : (
+                                                    <Ionicons name="shield-checkmark" size={40} color={colors.cyan} />
+                                                )}
+                                            </View>
+
                                             <Text
                                                 style={[
                                                     styles.verdictRoleText,
-                                                    { color: ejectedPlayer.isImpostor ? '#FF4757' : '#00CEC9' },
+                                                    { color: ejectedPlayer.isImpostor ? colors.impostor : colors.cyan },
                                                 ]}
                                             >
                                                 {ejectedPlayer.isImpostor
                                                     ? '¡ERA EL IMPOSTOR!'
-                                                    : '¡ERA UN TRIPULANTE INOCENTE!'}
+                                                    : '¡ERA UN TRIPULANTE!'}
                                             </Text>
                                             <Text style={styles.verdictSub}>
                                                 {ejectedPlayer.isImpostor
-                                                    ? '¡La tripulación ha ganado la partida!'
-                                                    : 'El impostor ha engañado a todos...'}
+                                                    ? 'La tripulación descubrió al infiltrado con éxito.'
+                                                    : 'El impostor logró engañar a todos...'}
                                             </Text>
 
                                             <TouchableOpacity
                                                 style={styles.goToResultsBtn}
                                                 onPress={handleGoToResults}
-                                                activeOpacity={0.8}
+                                                activeOpacity={0.85}
                                             >
                                                 <LinearGradient
-                                                    colors={['#00B894', '#00CEC9']}
+                                                    colors={['#00B894', '#00F59B']}
                                                     style={styles.goToResultsGradient}
                                                 >
                                                     <Text style={styles.goToResultsText}>
-                                                        🏆 Ver Resultados y Estadísticas
+                                                        Ver Resultados Finales
                                                     </Text>
+                                                    <Ionicons name="arrow-forward" size={18} color="#07080C" style={{ marginLeft: 6 }} />
                                                 </LinearGradient>
                                             </TouchableOpacity>
                                         </View>
@@ -329,17 +343,17 @@ export const VotingScreen: React.FC<VotingScreenProps> = ({
                                 </>
                             ) : (
                                 <View style={styles.tieBox}>
-                                    <Text style={styles.tieEmoji}>⚖️</Text>
-                                    <Text style={styles.tieTitle}>¡EMPATE DE VOTOS!</Text>
+                                    <Ionicons name="scale-outline" size={44} color={colors.warning} style={{ marginBottom: 8 }} />
+                                    <Text style={styles.tieTitle}>EMPATE DE VOTOS</Text>
                                     <Text style={styles.tieSub}>
-                                        Nadie fue expulsado. La partida termina sin veredicto claro.
+                                        No hubo consenso suficiente para expulsar a un sospechoso.
                                     </Text>
                                     <TouchableOpacity
                                         style={styles.goToResultsBtn}
                                         onPress={handleGoToResults}
                                     >
                                         <LinearGradient
-                                            colors={['#6C5CE7', '#A29BFE']}
+                                            colors={['#7952FF', '#9D7DFF']}
                                             style={styles.goToResultsGradient}
                                         >
                                             <Text style={styles.goToResultsText}>Ver Quién Era</Text>
@@ -351,200 +365,192 @@ export const VotingScreen: React.FC<VotingScreenProps> = ({
                     </Animated.View>
                 </View>
             </Modal>
-        </LinearGradient>
+        </View>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-    },
-    bgCircle1: {
-        position: 'absolute',
-        width: 250,
-        height: 250,
-        borderRadius: 125,
-        backgroundColor: '#FF4757',
-        top: -80,
-        right: -80,
-        opacity: 0.08,
-    },
-    bgCircle2: {
-        position: 'absolute',
-        width: 180,
-        height: 180,
-        borderRadius: 90,
-        backgroundColor: '#6C5CE7',
-        bottom: 50,
-        left: -60,
-        opacity: 0.08,
+        backgroundColor: colors.bgDeep,
     },
     content: {
         flex: 1,
-        paddingHorizontal: 24,
+        paddingHorizontal: 20,
         paddingTop: 54,
     },
     header: {
-        marginBottom: 16,
+        marginBottom: 14,
     },
     backBtn: {
-        marginBottom: 12,
-    },
-    backBtnText: {
-        color: 'rgba(255, 255, 255, 0.6)',
-        fontSize: 14,
-        fontWeight: '600',
-    },
-    titleRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 12,
-        marginBottom: 12,
+        gap: 6,
+        paddingVertical: 4,
+        marginBottom: 10,
     },
-    titleEmoji: {
-        fontSize: 32,
+    backBtnText: {
+        color: colors.textSecondary,
+        fontSize: 13,
+        fontWeight: '700',
+    },
+    voterHeaderCard: {
+        backgroundColor: colors.bgCard,
+        borderRadius: 18,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: colors.borderSubtle,
+    },
+    voterTagRow: {
+        flexDirection: 'row',
+        marginBottom: 4,
+    },
+    voterBadge: {
+        backgroundColor: 'rgba(255, 42, 85, 0.15)',
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 6,
+    },
+    voterBadgeText: {
+        fontSize: 10,
+        fontWeight: '900',
+        color: colors.impostor,
+        letterSpacing: 0.8,
     },
     title: {
-        fontSize: 26,
+        fontSize: 22,
         fontWeight: '900',
-        color: '#FFFFFF',
+        color: colors.textPrimary,
+        marginTop: 4,
     },
     subtitle: {
-        fontSize: 14,
-        color: 'rgba(255, 255, 255, 0.6)',
+        fontSize: 13,
+        color: colors.textMuted,
         marginTop: 2,
     },
-    activeVoterName: {
-        color: '#00CEC9',
-        fontWeight: '800',
+    highlightName: {
+        color: colors.cyan,
+        fontWeight: '900',
     },
-    voterProgressBar: {
-        height: 6,
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-        borderRadius: 3,
+    progressBarBg: {
+        height: 4,
+        backgroundColor: colors.bgElevated,
+        borderRadius: 2,
         overflow: 'hidden',
-        marginTop: 8,
+        marginTop: 12,
     },
-    voterProgressFill: {
+    progressBarFill: {
         height: '100%',
-        backgroundColor: '#FF4757',
-        borderRadius: 3,
+        backgroundColor: colors.impostor,
     },
-    voterProgressText: {
-        fontSize: 11,
-        color: 'rgba(255, 255, 255, 0.4)',
-        marginTop: 4,
-        textAlign: 'right',
-    },
-    questionCard: {
-        backgroundColor: 'rgba(255, 71, 87, 0.12)',
-        borderRadius: 16,
-        padding: 14,
-        marginBottom: 16,
+    promptCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255, 42, 85, 0.1)',
+        borderRadius: 14,
+        padding: 12,
+        marginBottom: 12,
         borderWidth: 1,
-        borderColor: 'rgba(255, 71, 87, 0.3)',
+        borderColor: 'rgba(255, 42, 85, 0.25)',
     },
-    questionText: {
-        fontSize: 15,
-        color: '#FFFFFF',
+    promptText: {
+        fontSize: 13,
         fontWeight: '700',
-        textAlign: 'center',
+        color: colors.textPrimary,
+        flex: 1,
     },
     suspectsScroll: {
         flex: 1,
     },
     suspectsGrid: {
-        gap: 10,
-        paddingBottom: 20,
+        gap: 8,
+        paddingBottom: 100,
     },
     suspectCard: {
-        borderRadius: 18,
+        borderRadius: 16,
         overflow: 'hidden',
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.08)',
+        borderColor: colors.borderSubtle,
     },
     suspectCardSelected: {
-        borderColor: '#FF4757',
-        borderWidth: 2,
+        borderColor: colors.impostor,
+        borderWidth: 1.5,
     },
     suspectCardSelf: {
         opacity: 0.7,
     },
-    suspectCardGradient: {
+    suspectGradient: {
         flexDirection: 'row',
         alignItems: 'center',
-        padding: 14,
-        gap: 14,
+        padding: 12,
+        gap: 12,
     },
     avatarCircle: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        backgroundColor: 'rgba(108, 92, 231, 0.3)',
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: colors.bgElevated,
         justifyContent: 'center',
         alignItems: 'center',
     },
     avatarCircleSelected: {
-        backgroundColor: '#FF4757',
+        backgroundColor: colors.impostor,
     },
     avatarInitial: {
-        fontSize: 20,
+        fontSize: 16,
         fontWeight: '900',
         color: '#FFFFFF',
     },
     suspectName: {
-        flex: 1,
-        fontSize: 18,
-        fontWeight: '700',
-        color: '#FFFFFF',
-    },
-    suspectNameSelected: {
-        color: '#FF6B81',
-        fontWeight: '900',
-    },
-    selfBadge: {
-        fontSize: 12,
-        color: 'rgba(255, 255, 255, 0.4)',
-        fontWeight: '600',
-    },
-    suspectTag: {
-        backgroundColor: '#FF4757',
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: 10,
-    },
-    suspectTagText: {
-        color: '#FFFFFF',
-        fontSize: 11,
+        fontSize: 16,
         fontWeight: '800',
+        color: colors.textPrimary,
     },
-    footer: {
-        paddingVertical: 18,
+    selfLabel: {
+        fontSize: 11,
+        color: colors.textMuted,
+        marginTop: 1,
+    },
+    suspectTagBox: {
+        padding: 4,
+    },
+    emptyCheckRadio: {
+        width: 18,
+        height: 18,
+        borderRadius: 9,
+        borderWidth: 1.5,
+        borderColor: colors.borderLight,
+    },
+    bottomBar: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        paddingHorizontal: 20,
+        paddingTop: 14,
+        paddingBottom: 36,
+        backgroundColor: 'rgba(7, 8, 12, 0.95)',
+        borderTopWidth: 1,
+        borderTopColor: colors.borderSubtle,
     },
     confirmVoteBtn: {
-        borderRadius: 20,
+        borderRadius: 16,
         overflow: 'hidden',
-        shadowColor: '#FF4757',
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.4,
-        shadowRadius: 12,
-        elevation: 8,
     },
     confirmVoteBtnDisabled: {
         opacity: 0.5,
-        shadowOpacity: 0,
-        elevation: 0,
     },
     confirmVoteGradient: {
-        paddingVertical: 18,
+        flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
+        paddingVertical: 16,
     },
     confirmVoteText: {
-        fontSize: 17,
-        fontWeight: '800',
+        fontSize: 16,
+        fontWeight: '900',
         color: '#FFFFFF',
-        letterSpacing: 0.5,
+        letterSpacing: 0.3,
     },
     ejectionOverlay: {
         flex: 1,
@@ -555,116 +561,119 @@ const styles = StyleSheet.create({
     },
     ejectionCard: {
         width: '100%',
-        maxWidth: 380,
-        borderRadius: 28,
+        maxWidth: 360,
+        borderRadius: 26,
         overflow: 'hidden',
-        borderWidth: 1.5,
-        borderColor: 'rgba(255, 71, 87, 0.4)',
+        borderWidth: 1,
+        borderColor: colors.borderLight,
     },
     ejectionGradient: {
-        padding: 26,
+        padding: 24,
         alignItems: 'center',
     },
-    ejectionSiren: {
-        fontSize: 48,
-        marginBottom: 8,
-    },
-    ejectionHeaderTitle: {
-        fontSize: 14,
-        fontWeight: '900',
-        color: '#FF4757',
-        letterSpacing: 2,
+    verdictHeaderBox: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
         marginBottom: 16,
     },
+    ejectionHeaderTitle: {
+        fontSize: 12,
+        fontWeight: '900',
+        color: colors.impostor,
+        letterSpacing: 2,
+    },
     ejectedLabel: {
-        fontSize: 14,
-        color: 'rgba(255, 255, 255, 0.6)',
+        fontSize: 13,
+        color: colors.textMuted,
         marginBottom: 8,
     },
     ejectedNameBox: {
-        backgroundColor: 'rgba(255, 71, 87, 0.2)',
-        paddingHorizontal: 28,
-        paddingVertical: 14,
-        borderRadius: 18,
+        backgroundColor: 'rgba(255, 42, 85, 0.15)',
+        paddingHorizontal: 24,
+        paddingVertical: 12,
+        borderRadius: 14,
         borderWidth: 1,
-        borderColor: '#FF4757',
-        marginBottom: 24,
+        borderColor: colors.impostor,
+        marginBottom: 20,
     },
     ejectedPlayerName: {
-        fontSize: 28,
+        fontSize: 24,
         fontWeight: '900',
-        color: '#FFFFFF',
+        color: colors.textPrimary,
         textAlign: 'center',
     },
     revealIdentityBtn: {
         width: '100%',
-        borderRadius: 18,
+        borderRadius: 14,
         overflow: 'hidden',
     },
     revealIdentityGradient: {
-        paddingVertical: 16,
+        flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
+        paddingVertical: 15,
     },
     revealIdentityText: {
         color: '#FFFFFF',
-        fontSize: 16,
-        fontWeight: '800',
+        fontSize: 15,
+        fontWeight: '900',
     },
     verdictResultBox: {
         width: '100%',
         alignItems: 'center',
     },
-    verdictBigEmoji: {
-        fontSize: 56,
-        marginBottom: 10,
+    verdictIconCircle: {
+        width: 72,
+        height: 72,
+        borderRadius: 36,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 12,
     },
     verdictRoleText: {
-        fontSize: 24,
+        fontSize: 22,
         fontWeight: '900',
         letterSpacing: 1,
         textAlign: 'center',
     },
     verdictSub: {
-        fontSize: 14,
-        color: 'rgba(255, 255, 255, 0.7)',
+        fontSize: 13,
+        color: colors.textSecondary,
         textAlign: 'center',
-        marginTop: 6,
-        marginBottom: 20,
+        marginTop: 4,
+        marginBottom: 18,
     },
     goToResultsBtn: {
         width: '100%',
-        borderRadius: 18,
+        borderRadius: 14,
         overflow: 'hidden',
     },
     goToResultsGradient: {
-        paddingVertical: 16,
+        flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
+        paddingVertical: 15,
     },
     goToResultsText: {
-        color: '#FFFFFF',
-        fontSize: 16,
-        fontWeight: '800',
+        color: '#07080C',
+        fontSize: 15,
+        fontWeight: '900',
     },
     tieBox: {
         alignItems: 'center',
         width: '100%',
     },
-    tieEmoji: {
-        fontSize: 48,
-        marginBottom: 10,
-    },
     tieTitle: {
-        fontSize: 22,
+        fontSize: 18,
         fontWeight: '900',
-        color: '#F1C40F',
-        marginBottom: 8,
+        color: colors.warning,
+        marginBottom: 6,
     },
     tieSub: {
-        fontSize: 14,
-        color: 'rgba(255, 255, 255, 0.7)',
+        fontSize: 13,
+        color: colors.textMuted,
         textAlign: 'center',
-        marginBottom: 20,
+        marginBottom: 18,
     },
 });

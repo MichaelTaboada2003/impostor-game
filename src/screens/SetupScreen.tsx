@@ -8,11 +8,12 @@ import {
     Animated,
     ScrollView,
     Switch,
+    Vibration,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import { useGame } from '../context/GameContext';
 import { colors, gradients } from '../styles/colors';
-import { GameMode } from '../types/game';
 
 const { width } = Dimensions.get('window');
 
@@ -31,23 +32,15 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onNext }) => {
     } = useGame();
 
     const fadeAnim = useRef(new Animated.Value(0)).current;
-    const scaleAnim = useRef(new Animated.Value(0.9)).current;
-    const titleAnim = useRef(new Animated.Value(0)).current;
-    const glowAnim = useRef(new Animated.Value(0)).current;
+    const scaleAnim = useRef(new Animated.Value(0.95)).current;
+    const titleAnim = useRef(new Animated.Value(-15)).current;
 
     useEffect(() => {
         Animated.parallel([
-            Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
-            Animated.spring(scaleAnim, { toValue: 1, friction: 8, tension: 40, useNativeDriver: true }),
-            Animated.timing(titleAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
+            Animated.timing(fadeAnim, { toValue: 1, duration: 450, useNativeDriver: true }),
+            Animated.spring(scaleAnim, { toValue: 1, friction: 8, tension: 50, useNativeDriver: true }),
+            Animated.spring(titleAnim, { toValue: 0, friction: 8, tension: 50, useNativeDriver: true }),
         ]).start();
-
-        Animated.loop(
-            Animated.sequence([
-                Animated.timing(glowAnim, { toValue: 1, duration: 2000, useNativeDriver: true }),
-                Animated.timing(glowAnim, { toValue: 0, duration: 2000, useNativeDriver: true }),
-            ])
-        ).start();
     }, []);
 
     const {
@@ -59,11 +52,15 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onNext }) => {
     } = gameState.config;
 
     const incrementPlayers = () => {
-        if (numberOfPlayers < 16) setNumberOfPlayers(numberOfPlayers + 1);
+        if (numberOfPlayers < 16) {
+            Vibration.vibrate(25);
+            setNumberOfPlayers(numberOfPlayers + 1);
+        }
     };
 
     const decrementPlayers = () => {
         if (numberOfPlayers > 3) {
+            Vibration.vibrate(25);
             setNumberOfPlayers(numberOfPlayers - 1);
             if (numberOfImpostors >= numberOfPlayers - 1) {
                 setNumberOfImpostors(Math.max(1, numberOfPlayers - 2));
@@ -73,17 +70,18 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onNext }) => {
 
     const incrementImpostors = () => {
         const maxImpostors = Math.floor(numberOfPlayers / 2);
-        if (numberOfImpostors < maxImpostors) setNumberOfImpostors(numberOfImpostors + 1);
+        if (numberOfImpostors < maxImpostors) {
+            Vibration.vibrate(25);
+            setNumberOfImpostors(numberOfImpostors + 1);
+        }
     };
 
     const decrementImpostors = () => {
-        if (numberOfImpostors > 1) setNumberOfImpostors(numberOfImpostors - 1);
+        if (numberOfImpostors > 1) {
+            Vibration.vibrate(25);
+            setNumberOfImpostors(numberOfImpostors - 1);
+        }
     };
-
-    const glowOpacity = glowAnim.interpolate({
-        inputRange: [0, 1],
-        outputRange: [0.2, 0.7],
-    });
 
     const timerOptions = [
         { label: 'Libre', seconds: 0 },
@@ -93,21 +91,39 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onNext }) => {
         { label: '5 min', seconds: 300 },
     ];
 
-    return (
-        <LinearGradient
-            colors={['#0a0a1a', '#141432', '#0a0a1a']}
-            style={styles.container}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-        >
-            <View style={styles.versionBadge}>
-                <Text style={styles.versionText}>v2.0 IA</Text>
-            </View>
+    const crewmatesCount = numberOfPlayers - numberOfImpostors;
 
-            <Animated.View style={[styles.bgCircle1, { opacity: glowOpacity }]} />
-            <Animated.View style={[styles.bgCircle2, { opacity: glowOpacity }]} />
+    return (
+        <View style={styles.container}>
+            <LinearGradient
+                colors={gradients.appBackground}
+                style={StyleSheet.absoluteFillObject}
+            />
+
+            {/* Subtle Atmospheric Top Glow */}
+            <View style={styles.glowSpotlight} />
+
+            {/* Header */}
+            <Animated.View
+                style={[
+                    styles.header,
+                    { opacity: fadeAnim, transform: [{ translateY: titleAnim }] },
+                ]}
+            >
+                <View style={styles.appBadgeRow}>
+                    <View style={styles.appIconPill}>
+                        <MaterialCommunityIcons name="incognito" size={20} color={colors.primaryLight} />
+                        <Text style={styles.appBadgeTitle}>IMPOSTOR GAME</Text>
+                    </View>
+                    <View style={styles.versionTag}>
+                        <Text style={styles.versionText}>PRO</Text>
+                    </View>
+                </View>
+                <Text style={styles.mainTitle}>Configura la Partida</Text>
+            </Animated.View>
 
             <ScrollView
+                style={styles.scrollView}
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
             >
@@ -117,618 +133,564 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onNext }) => {
                         { opacity: fadeAnim, transform: [{ scale: scaleAnim }] },
                     ]}
                 >
-                    {/* Header */}
-                    <Animated.View style={[styles.header, { opacity: titleAnim }]}>
-                        <View style={styles.logoContainer}>
-                            <Text style={styles.emoji}>🎭</Text>
-                            <View style={styles.glowEffect} />
+                    {/* Game Mode Segmented Switch */}
+                    <View style={styles.cardSection}>
+                        <View style={styles.sectionHeaderRow}>
+                            <Ionicons name="game-controller-outline" size={18} color={colors.primaryLight} />
+                            <Text style={styles.sectionTitle}>Modo de Juego</Text>
                         </View>
-                        <Text style={styles.title}>IMPOSTOR</Text>
-                        <Text style={styles.subtitle}>Juego de deducción, engaño y astucia</Text>
-                    </Animated.View>
 
-                    {/* Mode Selector */}
-                    <View style={styles.settingCard}>
-                        <LinearGradient
-                            colors={['rgba(108, 92, 231, 0.15)', 'rgba(108, 92, 231, 0.04)']}
-                            style={styles.cardGradient}
-                        >
-                            <View style={styles.cardHeader}>
-                                <View style={styles.iconBadge}>
-                                    <Text style={styles.settingIcon}>🎮</Text>
-                                </View>
-                                <View style={{ flex: 1 }}>
-                                    <Text style={styles.settingLabel}>Modo de Juego</Text>
-                                    <Text style={styles.settingSubtext}>
-                                        {gameMode === 'classic'
-                                            ? 'El impostor ve "???" y debe fingir'
-                                            : 'El impostor recibe una palabra parecida (Undercover)'}
-                                    </Text>
-                                </View>
-                            </View>
-
-                            <View style={styles.modeToggleRow}>
-                                <TouchableOpacity
+                        <View style={styles.modeSegmentContainer}>
+                            <TouchableOpacity
+                                style={[
+                                    styles.modeSegmentBtn,
+                                    gameMode === 'classic' && styles.modeSegmentBtnActive,
+                                ]}
+                                onPress={() => {
+                                    Vibration.vibrate(20);
+                                    setGameMode('classic');
+                                }}
+                                activeOpacity={0.8}
+                            >
+                                <Ionicons
+                                    name="eye-off-outline"
+                                    size={18}
+                                    color={gameMode === 'classic' ? '#FFFFFF' : colors.textMuted}
+                                />
+                                <Text
                                     style={[
-                                        styles.modeOption,
-                                        gameMode === 'classic' && styles.modeOptionActive,
+                                        styles.modeSegmentText,
+                                        gameMode === 'classic' && styles.modeSegmentTextActive,
                                     ]}
-                                    onPress={() => setGameMode('classic')}
-                                    activeOpacity={0.8}
                                 >
-                                    <Text style={styles.modeOptionIcon}>🕵️</Text>
-                                    <Text
-                                        style={[
-                                            styles.modeOptionText,
-                                            gameMode === 'classic' && styles.modeOptionTextActive,
-                                        ]}
-                                    >
-                                        Clásico
-                                    </Text>
-                                </TouchableOpacity>
+                                    Clásico
+                                </Text>
+                            </TouchableOpacity>
 
-                                <TouchableOpacity
+                            <TouchableOpacity
+                                style={[
+                                    styles.modeSegmentBtn,
+                                    gameMode === 'undercover' && styles.modeSegmentBtnActiveUndercover,
+                                ]}
+                                onPress={() => {
+                                    Vibration.vibrate(20);
+                                    setGameMode('undercover');
+                                }}
+                                activeOpacity={0.8}
+                            >
+                                <MaterialCommunityIcons
+                                    name="shield-account-outline"
+                                    size={18}
+                                    color={gameMode === 'undercover' ? colors.aiPink : colors.textMuted}
+                                />
+                                <Text
                                     style={[
-                                        styles.modeOption,
-                                        gameMode === 'undercover' && styles.modeOptionActiveUndercover,
+                                        styles.modeSegmentText,
+                                        gameMode === 'undercover' && styles.modeSegmentTextActiveUndercover,
                                     ]}
-                                    onPress={() => setGameMode('undercover')}
-                                    activeOpacity={0.8}
                                 >
-                                    <Text style={styles.modeOptionIcon}>🤫</Text>
-                                    <Text
-                                        style={[
-                                            styles.modeOptionText,
-                                            gameMode === 'undercover' && styles.modeOptionTextActiveUndercover,
-                                        ]}
-                                    >
-                                        Undercover
-                                    </Text>
-                                </TouchableOpacity>
-                            </View>
-                        </LinearGradient>
+                                    Undercover
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+                        <Text style={styles.modeDescription}>
+                            {gameMode === 'classic'
+                                ? 'El impostor ve "???" y debe deducir la palabra escuchando a los demás.'
+                                : 'El infiltrado recibe una palabra muy parecida y cree que es tripulante.'}
+                        </Text>
                     </View>
 
-                    {/* Players Card */}
-                    <View style={styles.settingCard}>
-                        <LinearGradient
-                            colors={['rgba(0, 206, 201, 0.15)', 'rgba(0, 206, 201, 0.04)']}
-                            style={styles.cardGradient}
-                        >
-                            <View style={styles.cardHeader}>
-                                <View style={[styles.iconBadge, { backgroundColor: 'rgba(0, 206, 201, 0.25)' }]}>
-                                    <Text style={styles.settingIcon}>👥</Text>
-                                </View>
-                                <Text style={styles.settingLabel}>Jugadores</Text>
-                            </View>
-
-                            <View style={styles.counterContainer}>
-                                <TouchableOpacity
-                                    style={styles.counterButton}
-                                    onPress={decrementPlayers}
-                                    activeOpacity={0.7}
-                                >
-                                    <LinearGradient
-                                        colors={['#00B894', '#00CEC9']}
-                                        style={styles.counterButtonGradient}
-                                    >
-                                        <Text style={styles.counterButtonText}>−</Text>
-                                    </LinearGradient>
-                                </TouchableOpacity>
-
-                                <View style={[styles.counterValueContainer, { borderColor: 'rgba(0, 206, 201, 0.5)' }]}>
-                                    <Text style={styles.counterValueText}>{numberOfPlayers}</Text>
+                    {/* Dual Counter: Players & Impostors */}
+                    <View style={styles.counterRow}>
+                        {/* Players Counter Card */}
+                        <View style={styles.counterCard}>
+                            <LinearGradient
+                                colors={gradients.cardGlass}
+                                style={styles.counterCardGradient}
+                            >
+                                <View style={styles.counterCardHeader}>
+                                    <Ionicons name="people" size={16} color={colors.cyan} />
+                                    <Text style={styles.counterCardLabel}>Jugadores</Text>
                                 </View>
 
-                                <TouchableOpacity
-                                    style={styles.counterButton}
-                                    onPress={incrementPlayers}
-                                    activeOpacity={0.7}
-                                >
-                                    <LinearGradient
-                                        colors={['#00B894', '#00CEC9']}
-                                        style={styles.counterButtonGradient}
+                                <View style={styles.counterBody}>
+                                    <TouchableOpacity
+                                        style={styles.touchBtn}
+                                        onPress={decrementPlayers}
+                                        activeOpacity={0.7}
                                     >
-                                        <Text style={styles.counterButtonText}>+</Text>
-                                    </LinearGradient>
-                                </TouchableOpacity>
-                            </View>
+                                        <Text style={styles.touchBtnText}>−</Text>
+                                    </TouchableOpacity>
 
-                            <Text style={styles.settingHint}>Mínimo 3 · Máximo 16 jugadores</Text>
-                        </LinearGradient>
+                                    <View style={[styles.numberDisplay, { borderColor: colors.cyanGlow }]}>
+                                        <Text style={[styles.numberDisplayText, { color: colors.cyan }]}>
+                                            {numberOfPlayers}
+                                        </Text>
+                                    </View>
+
+                                    <TouchableOpacity
+                                        style={styles.touchBtn}
+                                        onPress={incrementPlayers}
+                                        activeOpacity={0.7}
+                                    >
+                                        <Text style={styles.touchBtnText}>+</Text>
+                                    </TouchableOpacity>
+                                </View>
+                                <Text style={styles.counterHint}>3 a 16 jugadores</Text>
+                            </LinearGradient>
+                        </View>
+
+                        {/* Impostors Counter Card */}
+                        <View style={styles.counterCard}>
+                            <LinearGradient
+                                colors={['rgba(255, 42, 85, 0.12)', 'rgba(255, 42, 85, 0.02)']}
+                                style={styles.counterCardGradient}
+                            >
+                                <View style={styles.counterCardHeader}>
+                                    <MaterialCommunityIcons name="knife-military" size={16} color={colors.impostor} />
+                                    <Text style={[styles.counterCardLabel, { color: colors.impostor }]}>Impostores</Text>
+                                </View>
+
+                                <View style={styles.counterBody}>
+                                    <TouchableOpacity
+                                        style={[styles.touchBtn, { backgroundColor: 'rgba(255, 42, 85, 0.15)' }]}
+                                        onPress={decrementImpostors}
+                                        activeOpacity={0.7}
+                                    >
+                                        <Text style={[styles.touchBtnText, { color: colors.impostorLight }]}>−</Text>
+                                    </TouchableOpacity>
+
+                                    <View style={[styles.numberDisplay, { borderColor: colors.impostorGlow }]}>
+                                        <Text style={[styles.numberDisplayText, { color: colors.impostor }]}>
+                                            {numberOfImpostors}
+                                        </Text>
+                                    </View>
+
+                                    <TouchableOpacity
+                                        style={[styles.touchBtn, { backgroundColor: 'rgba(255, 42, 85, 0.15)' }]}
+                                        onPress={incrementImpostors}
+                                        activeOpacity={0.7}
+                                    >
+                                        <Text style={[styles.touchBtnText, { color: colors.impostorLight }]}>+</Text>
+                                    </TouchableOpacity>
+                                </View>
+                                <Text style={styles.counterHint}>Máx {Math.floor(numberOfPlayers / 2)} impostores</Text>
+                            </LinearGradient>
+                        </View>
                     </View>
 
-                    {/* Impostors Card */}
-                    <View style={styles.settingCard}>
-                        <LinearGradient
-                            colors={['rgba(255, 71, 87, 0.15)', 'rgba(255, 71, 87, 0.04)']}
-                            style={styles.cardGradient}
-                        >
-                            <View style={styles.cardHeader}>
-                                <View style={[styles.iconBadge, styles.iconBadgeRed]}>
-                                    <Text style={styles.settingIcon}>🔪</Text>
-                                </View>
-                                <Text style={styles.settingLabel}>Impostores</Text>
-                            </View>
-
-                            <View style={styles.counterContainer}>
-                                <TouchableOpacity
-                                    style={styles.counterButton}
-                                    onPress={decrementImpostors}
-                                    activeOpacity={0.7}
-                                >
-                                    <LinearGradient
-                                        colors={['#FF4757', '#E84141']}
-                                        style={styles.counterButtonGradient}
-                                    >
-                                        <Text style={styles.counterButtonText}>−</Text>
-                                    </LinearGradient>
-                                </TouchableOpacity>
-
-                                <View style={[styles.counterValueContainer, styles.counterValueRed]}>
-                                    <Text style={styles.counterValueText}>{numberOfImpostors}</Text>
-                                </View>
-
-                                <TouchableOpacity
-                                    style={styles.counterButton}
-                                    onPress={incrementImpostors}
-                                    activeOpacity={0.7}
-                                >
-                                    <LinearGradient
-                                        colors={['#FF4757', '#E84141']}
-                                        style={styles.counterButtonGradient}
-                                    >
-                                        <Text style={styles.counterButtonText}>+</Text>
-                                    </LinearGradient>
-                                </TouchableOpacity>
-                            </View>
-
-                            <Text style={styles.settingHint}>
-                                Máximo {Math.floor(numberOfPlayers / 2)} impostor(es) para {numberOfPlayers} jugadores
+                    {/* Balance Preview Badge */}
+                    <View style={styles.balancePill}>
+                        <View style={styles.balanceTeam}>
+                            <Ionicons name="shield-checkmark" size={14} color={colors.cyan} />
+                            <Text style={styles.balanceTeamText}>{crewmatesCount} Tripulantes</Text>
+                        </View>
+                        <Text style={styles.balanceVs}>VS</Text>
+                        <View style={styles.balanceTeam}>
+                            <MaterialCommunityIcons name="sword-cross" size={14} color={colors.impostor} />
+                            <Text style={[styles.balanceTeamText, { color: colors.impostor }]}>
+                                {numberOfImpostors} {numberOfImpostors === 1 ? 'Impostor' : 'Impostores'}
                             </Text>
-                        </LinearGradient>
+                        </View>
                     </View>
 
-                    {/* Timer Options Card */}
-                    <View style={styles.settingCard}>
-                        <LinearGradient
-                            colors={['rgba(253, 121, 168, 0.12)', 'rgba(253, 121, 168, 0.03)']}
-                            style={styles.cardGradient}
-                        >
-                            <View style={styles.cardHeader}>
-                                <View style={[styles.iconBadge, { backgroundColor: 'rgba(253, 121, 168, 0.25)' }]}>
-                                    <Text style={styles.settingIcon}>⏱️</Text>
-                                </View>
-                                <Text style={styles.settingLabel}>Temporizador de Debate</Text>
-                            </View>
+                    {/* Round Timer Card */}
+                    <View style={styles.cardSection}>
+                        <View style={styles.sectionHeaderRow}>
+                            <Ionicons name="timer-outline" size={18} color={colors.warning} />
+                            <Text style={styles.sectionTitle}>Tiempo de Debate</Text>
+                        </View>
 
-                            <View style={styles.timerPickerRow}>
-                                {timerOptions.map(opt => (
+                        <View style={styles.timerPillsRow}>
+                            {timerOptions.map(opt => {
+                                const isActive = roundTimerSeconds === opt.seconds;
+                                return (
                                     <TouchableOpacity
                                         key={opt.seconds}
                                         style={[
                                             styles.timerPill,
-                                            roundTimerSeconds === opt.seconds && styles.timerPillActive,
+                                            isActive && styles.timerPillActive,
                                         ]}
-                                        onPress={() => setRoundTimerSeconds(opt.seconds)}
-                                        activeOpacity={0.8}
+                                        onPress={() => {
+                                            Vibration.vibrate(15);
+                                            setRoundTimerSeconds(opt.seconds);
+                                        }}
+                                        activeOpacity={0.75}
                                     >
                                         <Text
                                             style={[
                                                 styles.timerPillText,
-                                                roundTimerSeconds === opt.seconds && styles.timerPillTextActive,
+                                                isActive && styles.timerPillTextActive,
                                             ]}
                                         >
                                             {opt.label}
                                         </Text>
                                     </TouchableOpacity>
-                                ))}
-                            </View>
-                        </LinearGradient>
+                                );
+                            })}
+                        </View>
                     </View>
 
-                    {/* Hints Toggle Card */}
+                    {/* Hints Toggle Card (Classic Mode Only) */}
                     {gameMode === 'classic' && (
-                        <View style={styles.settingCard}>
-                            <LinearGradient
-                                colors={['rgba(241, 196, 15, 0.15)', 'rgba(241, 196, 15, 0.04)']}
-                                style={styles.cardGradient}
-                            >
-                                <View style={[styles.cardHeader, { marginBottom: 0 }]}>
-                                    <View style={[styles.iconBadge, { backgroundColor: 'rgba(241, 196, 15, 0.3)' }]}>
-                                        <Text style={styles.settingIcon}>💡</Text>
-                                    </View>
-                                    <View style={{ flex: 1 }}>
-                                        <Text style={styles.settingLabel}>Pistas de Ayuda</Text>
-                                        <Text style={[styles.settingHint, { textAlign: 'left', marginTop: 2 }]}>
-                                            Da una pista contextual al impostor
-                                        </Text>
-                                    </View>
-                                    <Switch
-                                        value={allowHints}
-                                        onValueChange={setAllowHints}
-                                        trackColor={{ false: 'rgba(255, 255, 255, 0.2)', true: '#F1C40F' }}
-                                        thumbColor={allowHints ? '#FFFFFF' : '#f4f3f4'}
-                                    />
+                        <View style={styles.switchRowCard}>
+                            <View style={styles.switchInfo}>
+                                <View style={styles.switchTitleRow}>
+                                    <Ionicons name="bulb-outline" size={18} color={colors.warning} />
+                                    <Text style={styles.switchTitle}>Pistas para el Impostor</Text>
                                 </View>
-                            </LinearGradient>
+                                <Text style={styles.switchSubtitle}>
+                                    Da una pista temática sutil para que el impostor pueda disimular
+                                </Text>
+                            </View>
+                            <Switch
+                                value={allowHints}
+                                onValueChange={(val) => {
+                                    Vibration.vibrate(20);
+                                    setAllowHints(val);
+                                }}
+                                trackColor={{ false: 'rgba(255, 255, 255, 0.1)', true: colors.primary }}
+                                thumbColor={allowHints ? '#FFFFFF' : '#8E8E93'}
+                            />
                         </View>
                     )}
-
-                    {/* Summary Balance */}
-                    <View style={styles.summaryContainer}>
-                        <View style={styles.summaryCard}>
-                            <LinearGradient
-                                colors={['rgba(93, 173, 226, 0.2)', 'rgba(93, 173, 226, 0.05)']}
-                                style={styles.summaryGradient}
-                            >
-                                <Text style={styles.summaryEmoji}>👤</Text>
-                                <Text style={styles.summaryValue}>{numberOfPlayers - numberOfImpostors}</Text>
-                                <Text style={styles.summaryLabel}>Tripulantes</Text>
-                            </LinearGradient>
-                        </View>
-
-                        <View style={styles.vsContainer}>
-                            <Text style={styles.vsText}>VS</Text>
-                        </View>
-
-                        <View style={styles.summaryCard}>
-                            <LinearGradient
-                                colors={['rgba(255, 71, 87, 0.2)', 'rgba(255, 71, 87, 0.05)']}
-                                style={styles.summaryGradient}
-                            >
-                                <Text style={styles.summaryEmoji}>🔪</Text>
-                                <Text style={[styles.summaryValue, { color: colors.impostorRed }]}>
-                                    {numberOfImpostors}
-                                </Text>
-                                <Text style={styles.summaryLabel}>
-                                    {numberOfImpostors === 1 ? 'Impostor' : 'Impostores'}
-                                </Text>
-                            </LinearGradient>
-                        </View>
-                    </View>
-
-                    {/* Continue Button */}
-                    <TouchableOpacity
-                        style={styles.continueButton}
-                        onPress={onNext}
-                        activeOpacity={0.85}
-                    >
-                        <LinearGradient
-                            colors={['#6C5CE7', '#A29BFE', '#6C5CE7']}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 0 }}
-                            style={styles.continueButtonGradient}
-                        >
-                            <Text style={styles.continueButtonText}>Configurar Nombres</Text>
-                            <View style={styles.arrowContainer}>
-                                <Text style={styles.continueButtonIcon}>→</Text>
-                            </View>
-                        </LinearGradient>
-                    </TouchableOpacity>
                 </Animated.View>
             </ScrollView>
-        </LinearGradient>
+
+            {/* Fixed Bottom CTA Bar */}
+            <View style={styles.bottomBar}>
+                <TouchableOpacity
+                    style={styles.continueButton}
+                    onPress={onNext}
+                    activeOpacity={0.85}
+                >
+                    <LinearGradient
+                        colors={['#7952FF', '#9D7DFF']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={styles.continueGradient}
+                    >
+                        <Text style={styles.continueText}>Ingresar Nombres</Text>
+                        <Ionicons name="arrow-forward" size={18} color="#FFFFFF" style={{ marginLeft: 8 }} />
+                    </LinearGradient>
+                </TouchableOpacity>
+            </View>
+        </View>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+        backgroundColor: colors.bgDeep,
     },
-    bgCircle1: {
+    glowSpotlight: {
         position: 'absolute',
-        width: 300,
-        height: 300,
-        borderRadius: 150,
-        backgroundColor: '#6C5CE7',
-        top: -100,
-        right: -100,
-        opacity: 0.1,
-    },
-    bgCircle2: {
-        position: 'absolute',
-        width: 250,
-        height: 250,
-        borderRadius: 125,
-        backgroundColor: '#00CEC9',
-        bottom: 100,
-        left: -80,
-        opacity: 0.1,
-    },
-    scrollContent: {
-        flexGrow: 1,
-        paddingTop: 54,
-        paddingBottom: 40,
-    },
-    content: {
-        flex: 1,
-        paddingHorizontal: 22,
-    },
-    versionBadge: {
-        position: 'absolute',
-        top: 50,
-        right: 20,
-        zIndex: 100,
-        backgroundColor: 'rgba(108, 92, 231, 0.35)',
-        paddingHorizontal: 12,
-        paddingVertical: 5,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: 'rgba(108, 92, 231, 0.5)',
-    },
-    versionText: {
-        fontSize: 11,
-        color: '#A29BFE',
-        fontWeight: '800',
+        top: -60,
+        alignSelf: 'center',
+        width: 260,
+        height: 180,
+        borderRadius: 130,
+        backgroundColor: colors.primaryGlow,
+        opacity: 0.6,
     },
     header: {
-        alignItems: 'center',
-        marginBottom: 24,
+        paddingTop: 54,
+        paddingHorizontal: 20,
+        paddingBottom: 14,
     },
-    logoContainer: {
-        position: 'relative',
+    appBadgeRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 8,
+    },
+    appIconPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: colors.bgGlassHover,
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 20,
+        gap: 6,
+        borderWidth: 1,
+        borderColor: colors.borderSubtle,
+    },
+    appBadgeTitle: {
+        fontSize: 11,
+        fontWeight: '900',
+        color: colors.primaryLight,
+        letterSpacing: 1.2,
+    },
+    versionTag: {
+        backgroundColor: 'rgba(0, 240, 255, 0.15)',
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: 'rgba(0, 240, 255, 0.3)',
+    },
+    versionText: {
+        fontSize: 10,
+        fontWeight: '900',
+        color: colors.cyan,
+        letterSpacing: 1,
+    },
+    mainTitle: {
+        fontSize: 26,
+        fontWeight: '900',
+        color: colors.textPrimary,
+        letterSpacing: 0.3,
+    },
+    scrollView: {
+        flex: 1,
+    },
+    scrollContent: {
+        paddingHorizontal: 20,
+        paddingBottom: 120,
+    },
+    content: {
+        gap: 14,
+    },
+    cardSection: {
+        backgroundColor: colors.bgCard,
+        borderRadius: 20,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: colors.borderSubtle,
+    },
+    sectionHeaderRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
         marginBottom: 12,
     },
-    emoji: {
-        fontSize: 70,
-    },
-    glowEffect: {
-        position: 'absolute',
-        width: 90,
-        height: 90,
-        borderRadius: 45,
-        backgroundColor: '#6C5CE7',
-        opacity: 0.3,
-        top: -10,
-        left: -10,
-        zIndex: -1,
-    },
-    title: {
-        fontSize: 38,
-        fontWeight: '900',
-        color: '#FFFFFF',
-        letterSpacing: 5,
-    },
-    subtitle: {
+    sectionTitle: {
         fontSize: 14,
-        color: 'rgba(255, 255, 255, 0.6)',
-        marginTop: 6,
-        textAlign: 'center',
-    },
-    settingCard: {
-        marginBottom: 14,
-        borderRadius: 22,
-        overflow: 'hidden',
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.1)',
-    },
-    cardGradient: {
-        padding: 18,
-    },
-    cardHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 14,
-    },
-    iconBadge: {
-        width: 44,
-        height: 44,
-        borderRadius: 14,
-        backgroundColor: 'rgba(108, 92, 231, 0.3)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 14,
-    },
-    iconBadgeRed: {
-        backgroundColor: 'rgba(255, 71, 87, 0.3)',
-    },
-    settingIcon: {
-        fontSize: 22,
-    },
-    settingLabel: {
-        fontSize: 18,
         fontWeight: '800',
-        color: '#FFFFFF',
+        color: colors.textPrimary,
+        letterSpacing: 0.3,
     },
-    settingSubtext: {
-        fontSize: 12,
-        color: 'rgba(255, 255, 255, 0.5)',
-        marginTop: 2,
-    },
-    modeToggleRow: {
+    modeSegmentContainer: {
         flexDirection: 'row',
-        gap: 10,
+        backgroundColor: colors.bgElevated,
+        borderRadius: 14,
+        padding: 4,
+        gap: 6,
     },
-    modeOption: {
+    modeSegmentBtn: {
         flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: 'rgba(255, 255, 255, 0.06)',
-        paddingVertical: 14,
-        borderRadius: 16,
-        gap: 8,
-        borderWidth: 1.5,
-        borderColor: 'transparent',
+        paddingVertical: 12,
+        borderRadius: 11,
+        gap: 6,
     },
-    modeOptionActive: {
-        backgroundColor: 'rgba(108, 92, 231, 0.3)',
-        borderColor: '#6C5CE7',
+    modeSegmentBtnActive: {
+        backgroundColor: colors.primary,
     },
-    modeOptionActiveUndercover: {
-        backgroundColor: 'rgba(253, 121, 168, 0.3)',
-        borderColor: '#FD79A8',
+    modeSegmentBtnActiveUndercover: {
+        backgroundColor: 'rgba(255, 77, 148, 0.25)',
+        borderWidth: 1,
+        borderColor: colors.aiPink,
     },
-    modeOptionIcon: {
-        fontSize: 18,
-    },
-    modeOptionText: {
-        fontSize: 14,
+    modeSegmentText: {
+        fontSize: 13,
         fontWeight: '700',
-        color: 'rgba(255, 255, 255, 0.6)',
+        color: colors.textMuted,
     },
-    modeOptionTextActive: {
+    modeSegmentTextActive: {
         color: '#FFFFFF',
         fontWeight: '900',
     },
-    modeOptionTextActiveUndercover: {
-        color: '#FD79A8',
+    modeSegmentTextActiveUndercover: {
+        color: colors.aiPink,
         fontWeight: '900',
     },
-    counterContainer: {
+    modeDescription: {
+        fontSize: 12,
+        color: colors.textMuted,
+        marginTop: 10,
+        lineHeight: 16,
+    },
+    counterRow: {
+        flexDirection: 'row',
+        gap: 12,
+    },
+    counterCard: {
+        flex: 1,
+        borderRadius: 20,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: colors.borderSubtle,
+    },
+    counterCardGradient: {
+        padding: 14,
+        alignItems: 'center',
+    },
+    counterCardHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        marginBottom: 10,
+    },
+    counterCardLabel: {
+        fontSize: 13,
+        fontWeight: '800',
+        color: colors.textSecondary,
+    },
+    counterBody: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 8,
+    },
+    touchBtn: {
+        width: 38,
+        height: 38,
+        borderRadius: 12,
+        backgroundColor: colors.bgGlassHover,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: colors.borderSubtle,
+    },
+    touchBtnText: {
+        fontSize: 22,
+        fontWeight: '700',
+        color: colors.textPrimary,
+    },
+    numberDisplay: {
+        width: 52,
+        height: 52,
+        borderRadius: 14,
+        backgroundColor: colors.bgElevated,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1.5,
+    },
+    numberDisplayText: {
+        fontSize: 26,
+        fontWeight: '900',
+    },
+    counterHint: {
+        fontSize: 10,
+        color: colors.textMuted,
+        textAlign: 'center',
+    },
+    balancePill: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 16,
-        marginBottom: 10,
+        backgroundColor: colors.bgElevated,
+        paddingVertical: 10,
+        paddingHorizontal: 16,
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: colors.borderSubtle,
+        gap: 12,
     },
-    counterButton: {
-        borderRadius: 18,
-        overflow: 'hidden',
-    },
-    counterButtonGradient: {
-        width: 52,
-        height: 52,
-        borderRadius: 18,
-        justifyContent: 'center',
+    balanceTeam: {
+        flexDirection: 'row',
         alignItems: 'center',
+        gap: 6,
     },
-    counterButtonText: {
-        fontSize: 26,
-        fontWeight: '700',
-        color: '#FFFFFF',
-    },
-    counterValueContainer: {
-        width: 80,
-        height: 80,
-        borderRadius: 22,
-        backgroundColor: 'rgba(0, 0, 0, 0.25)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderWidth: 2,
-    },
-    counterValueRed: {
-        borderColor: 'rgba(255, 71, 87, 0.5)',
-    },
-    counterValueText: {
-        fontSize: 36,
-        fontWeight: '900',
-        color: '#FFFFFF',
-    },
-    settingHint: {
+    balanceTeamText: {
         fontSize: 12,
-        color: 'rgba(255, 255, 255, 0.45)',
-        textAlign: 'center',
+        fontWeight: '800',
+        color: colors.cyan,
     },
-    timerPickerRow: {
+    balanceVs: {
+        fontSize: 11,
+        fontWeight: '900',
+        color: colors.textDisabled,
+    },
+    timerPillsRow: {
         flexDirection: 'row',
         gap: 6,
     },
     timerPill: {
         flex: 1,
-        backgroundColor: 'rgba(255, 255, 255, 0.06)',
-        paddingVertical: 10,
-        borderRadius: 12,
+        backgroundColor: colors.bgElevated,
+        paddingVertical: 9,
+        borderRadius: 10,
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.08)',
+        borderColor: colors.borderSubtle,
     },
     timerPillActive: {
-        backgroundColor: 'rgba(253, 121, 168, 0.3)',
-        borderColor: '#FD79A8',
+        backgroundColor: 'rgba(255, 184, 0, 0.2)',
+        borderColor: colors.warning,
     },
     timerPillText: {
-        fontSize: 12,
-        fontWeight: '600',
-        color: 'rgba(255, 255, 255, 0.6)',
+        fontSize: 11,
+        fontWeight: '700',
+        color: colors.textMuted,
     },
     timerPillTextActive: {
-        color: '#FD79A8',
-        fontWeight: '800',
+        color: colors.warning,
+        fontWeight: '900',
     },
-    summaryContainer: {
+    switchRowCard: {
         flexDirection: 'row',
-        justifyContent: 'center',
         alignItems: 'center',
-        marginVertical: 16,
+        backgroundColor: colors.bgCard,
+        borderRadius: 18,
+        padding: 14,
+        borderWidth: 1,
+        borderColor: colors.borderSubtle,
         gap: 12,
     },
-    summaryCard: {
+    switchInfo: {
         flex: 1,
-        borderRadius: 18,
-        overflow: 'hidden',
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.1)',
     },
-    summaryGradient: {
-        padding: 14,
+    switchTitleRow: {
+        flexDirection: 'row',
         alignItems: 'center',
+        gap: 6,
     },
-    summaryEmoji: {
-        fontSize: 24,
-        marginBottom: 4,
-    },
-    summaryValue: {
-        fontSize: 32,
-        fontWeight: '900',
-        color: '#5DADE2',
-    },
-    summaryLabel: {
-        fontSize: 11,
-        color: 'rgba(255, 255, 255, 0.5)',
-        marginTop: 2,
-        textTransform: 'uppercase',
-        letterSpacing: 1,
-    },
-    vsContainer: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    vsText: {
+    switchTitle: {
         fontSize: 13,
         fontWeight: '800',
-        color: 'rgba(255, 255, 255, 0.5)',
+        color: colors.textPrimary,
+    },
+    switchSubtitle: {
+        fontSize: 11,
+        color: colors.textMuted,
+        marginTop: 2,
+    },
+    bottomBar: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        paddingHorizontal: 20,
+        paddingTop: 14,
+        paddingBottom: 36,
+        backgroundColor: 'rgba(7, 8, 12, 0.95)',
+        borderTopWidth: 1,
+        borderTopColor: colors.borderSubtle,
     },
     continueButton: {
-        borderRadius: 22,
+        borderRadius: 16,
         overflow: 'hidden',
-        marginTop: 8,
-        marginBottom: 20,
-        shadowColor: '#6C5CE7',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.5,
-        shadowRadius: 18,
-        elevation: 10,
+        shadowColor: colors.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.4,
+        shadowRadius: 10,
+        elevation: 6,
     },
-    continueButtonGradient: {
+    continueGradient: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: 18,
-        paddingHorizontal: 28,
-        gap: 14,
+        paddingVertical: 16,
     },
-    continueButtonText: {
-        fontSize: 18,
-        fontWeight: '800',
-        color: '#FFFFFF',
-    },
-    arrowContainer: {
-        width: 30,
-        height: 30,
-        borderRadius: 15,
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    continueButtonIcon: {
+    continueText: {
         fontSize: 16,
+        fontWeight: '900',
         color: '#FFFFFF',
-        fontWeight: '700',
+        letterSpacing: 0.5,
     },
 });

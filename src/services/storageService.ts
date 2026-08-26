@@ -90,6 +90,19 @@ export const storageService = {
         }
     },
 
+    async updateGroup(updatedGroup: PlayerGroup): Promise<PlayerGroup[]> {
+        try {
+            const current = await this.getSavedGroups();
+            const updated = current.map(g => (g.id === updatedGroup.id ? updatedGroup : g));
+            await AsyncStorage.setItem(SAVED_GROUPS_KEY, JSON.stringify(updated));
+            return updated;
+        } catch (error) {
+            console.error('Error updating player group:', error);
+            return [];
+        }
+    },
+
+
     async deleteGroup(groupId: string): Promise<PlayerGroup[]> {
         try {
             const current = await this.getSavedGroups();

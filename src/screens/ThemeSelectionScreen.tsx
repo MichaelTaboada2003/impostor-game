@@ -9,15 +9,17 @@ import {
     Dimensions,
     TextInput,
     Alert,
+    Vibration,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import { useGame } from '../context/GameContext';
 import { Theme } from '../types/game';
 import { AIThemeModal } from '../components/AIThemeModal';
-import { colors } from '../styles/colors';
+import { colors, gradients } from '../styles/colors';
 
 const { width } = Dimensions.get('window');
-const CARD_WIDTH = (width - 64) / 2;
+const CARD_WIDTH = (width - 50) / 2;
 
 interface ThemeSelectionScreenProps {
     onBack: () => void;
@@ -25,12 +27,12 @@ interface ThemeSelectionScreenProps {
 }
 
 const CATEGORY_TABS = [
-    { id: 'all', label: '✨ Todos' },
-    { id: 'ai', label: '🤖 IA & Mis Temas' },
-    { id: 'popular', label: '🔥 Populares' },
-    { id: 'entertainment', label: '🎬 Entretenimiento' },
-    { id: 'culture', label: '🧠 Cultura' },
-    { id: 'local', label: '🌴 Caribe' },
+    { id: 'all', label: 'Todos', icon: 'grid-outline' },
+    { id: 'ai', label: 'IA & Mis Temas', icon: 'sparkles-outline' },
+    { id: 'popular', label: 'Populares', icon: 'flame-outline' },
+    { id: 'entertainment', label: 'Entretenimiento', icon: 'film-outline' },
+    { id: 'culture', label: 'Cultura', icon: 'earth-outline' },
+    { id: 'local', label: 'Caribe', icon: 'sunny-outline' },
 ];
 
 export const ThemeSelectionScreen: React.FC<ThemeSelectionScreenProps> = ({
@@ -51,26 +53,16 @@ export const ThemeSelectionScreen: React.FC<ThemeSelectionScreenProps> = ({
     const [showAIModal, setShowAIModal] = useState(false);
 
     const fadeAnim = useRef(new Animated.Value(0)).current;
-    const headerAnim = useRef(new Animated.Value(-20)).current;
-    const heroGlowAnim = useRef(new Animated.Value(0)).current;
+    const headerAnim = useRef(new Animated.Value(-15)).current;
 
     useEffect(() => {
         Animated.parallel([
             Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
             Animated.spring(headerAnim, { toValue: 0, friction: 8, tension: 50, useNativeDriver: true }),
         ]).start();
-
-        Animated.loop(
-            Animated.sequence([
-                Animated.timing(heroGlowAnim, { toValue: 1, duration: 1800, useNativeDriver: true }),
-                Animated.timing(heroGlowAnim, { toValue: 0.2, duration: 1800, useNativeDriver: true }),
-            ])
-        ).start();
     }, []);
 
-    // Filter themes
     const filteredThemes = allThemes.filter((theme) => {
-        // Tab filtering
         if (selectedTab === 'ai') {
             if (!theme.isAiGenerated && !customThemes.some(ct => ct.id === theme.id)) return false;
         } else if (selectedTab === 'popular') {
@@ -83,7 +75,6 @@ export const ThemeSelectionScreen: React.FC<ThemeSelectionScreenProps> = ({
             if (!['costeno', 'shalom'].includes(theme.id)) return false;
         }
 
-        // Search query filtering
         if (searchQuery.trim().length > 0) {
             const query = searchQuery.toLowerCase();
             const matchesName = theme.name.toLowerCase().includes(query);
@@ -95,6 +86,7 @@ export const ThemeSelectionScreen: React.FC<ThemeSelectionScreenProps> = ({
     });
 
     const handleSelectTheme = (themeId: string) => {
+        Vibration.vibrate(20);
         setSelectedThemeId(themeId);
     };
 
@@ -108,7 +100,6 @@ export const ThemeSelectionScreen: React.FC<ThemeSelectionScreenProps> = ({
     const handleThemeCreatedByAI = (newTheme: Theme) => {
         addCustomTheme(newTheme);
         setSelectedThemeId(newTheme.id);
-        // Automatically proceed or select
         selectTheme(newTheme.id);
         onNext();
     };
@@ -136,14 +127,11 @@ export const ThemeSelectionScreen: React.FC<ThemeSelectionScreenProps> = ({
     const selectedThemeObj = allThemes.find(t => t.id === selectedThemeId);
 
     return (
-        <LinearGradient
-            colors={['#0a0a1a', '#141432', '#0a0a1a']}
-            style={styles.container}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-        >
-            <View style={styles.bgCircle1} />
-            <View style={styles.bgCircle2} />
+        <View style={styles.container}>
+            <LinearGradient
+                colors={gradients.appBackground}
+                style={StyleSheet.absoluteFillObject}
+            />
 
             {/* Header */}
             <Animated.View
@@ -152,17 +140,15 @@ export const ThemeSelectionScreen: React.FC<ThemeSelectionScreenProps> = ({
                     { opacity: fadeAnim, transform: [{ translateY: headerAnim }] },
                 ]}
             >
-                <TouchableOpacity style={styles.backButton} onPress={onBack}>
-                    <View style={styles.backButtonInner}>
-                        <Text style={styles.backButtonIcon}>←</Text>
-                        <Text style={styles.backButtonText}>Atrás</Text>
-                    </View>
+                <TouchableOpacity style={styles.backButton} onPress={onBack} activeOpacity={0.7}>
+                    <Ionicons name="arrow-back" size={20} color={colors.textSecondary} />
+                    <Text style={styles.backButtonText}>Atrás</Text>
                 </TouchableOpacity>
 
                 <View style={styles.titleContainer}>
-                    <Text style={styles.title}>Elige una Temática</Text>
+                    <Text style={styles.title}>Selecciona Temática</Text>
                     <Text style={styles.subtitle}>
-                        Selecciona o crea con IA la categoría de palabras para esta partida
+                        Elige una categoría o crea una nueva con IA
                     </Text>
                 </View>
             </Animated.View>
@@ -172,21 +158,24 @@ export const ThemeSelectionScreen: React.FC<ThemeSelectionScreenProps> = ({
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
             >
-                {/* HERO: Crear con IA Card */}
+                {/* HERO: Cyber AI Generator Card */}
                 <TouchableOpacity
                     style={styles.aiHeroCard}
-                    onPress={() => setShowAIModal(true)}
+                    onPress={() => {
+                        Vibration.vibrate(20);
+                        setShowAIModal(true);
+                    }}
                     activeOpacity={0.85}
                 >
                     <LinearGradient
-                        colors={['#6C5CE7', '#FD79A8', '#00CEC9']}
+                        colors={['#7952FF', '#FF4D94', '#00F0FF']}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 1 }}
                         style={styles.aiHeroGradient}
                     >
                         <View style={styles.aiHeroInner}>
                             <View style={styles.aiHeroIconBox}>
-                                <Text style={styles.aiHeroIcon}>🤖</Text>
+                                <MaterialCommunityIcons name="robot" size={24} color="#FFFFFF" />
                                 <View style={styles.aiSparkleBadge}>
                                     <Text style={styles.aiSparkleText}>IA</Text>
                                 </View>
@@ -194,82 +183,94 @@ export const ThemeSelectionScreen: React.FC<ThemeSelectionScreenProps> = ({
 
                             <View style={styles.aiHeroContent}>
                                 <View style={styles.aiHeroBadgeRow}>
-                                    <Text style={styles.aiHeroBadge}>NUEVO · CREADOR MÁGICO</Text>
+                                    <Text style={styles.aiHeroBadge}>CREADOR MÁGICO</Text>
                                 </View>
                                 <Text style={styles.aiHeroTitle}>Crear Temática con IA</Text>
                                 <Text style={styles.aiHeroSubtitle}>
-                                    Escribe cualquier tema (anime, series, cocina, oficina...) y la IA creará las palabras y pistas
+                                    Genera palabras y pistas sobre cualquier tema al instante
                                 </Text>
                             </View>
 
                             <View style={styles.aiHeroArrow}>
-                                <Text style={styles.aiHeroArrowText}>⚡</Text>
+                                <Ionicons name="flash" size={16} color={colors.cyan} />
                             </View>
                         </View>
                     </LinearGradient>
                 </TouchableOpacity>
 
                 {/* Search Bar */}
-                <View style={styles.searchContainer}>
-                    <View style={styles.searchWrapper}>
-                        <Text style={styles.searchIcon}>🔍</Text>
-                        <TextInput
-                            style={styles.searchInput}
-                            placeholder="Buscar temática o palabra..."
-                            placeholderTextColor="rgba(255, 255, 255, 0.4)"
-                            value={searchQuery}
-                            onChangeText={setSearchQuery}
-                        />
-                        {searchQuery.length > 0 && (
-                            <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.searchClearBtn}>
-                                <Text style={styles.searchClearText}>✕</Text>
-                            </TouchableOpacity>
-                        )}
-                    </View>
+                <View style={styles.searchWrapper}>
+                    <Ionicons name="search-outline" size={18} color={colors.textMuted} style={{ marginRight: 8 }} />
+                    <TextInput
+                        style={styles.searchInput}
+                        placeholder="Buscar temática o palabra..."
+                        placeholderTextColor={colors.textMuted}
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+                    />
+                    {searchQuery.length > 0 && (
+                        <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.searchClearBtn}>
+                            <Ionicons name="close-circle" size={16} color={colors.textMuted} />
+                        </TouchableOpacity>
+                    )}
                 </View>
 
-                {/* Category Tabs */}
+                {/* Category Pills */}
                 <ScrollView
                     horizontal
                     showsHorizontalScrollIndicator={false}
                     contentContainerStyle={styles.tabsRow}
                 >
-                    {CATEGORY_TABS.map(tab => (
-                        <TouchableOpacity
-                            key={tab.id}
-                            style={[
-                                styles.tabPill,
-                                selectedTab === tab.id && styles.tabPillActive,
-                            ]}
-                            onPress={() => setSelectedTab(tab.id)}
-                        >
-                            <Text
+                    {CATEGORY_TABS.map(tab => {
+                        const isActive = selectedTab === tab.id;
+                        return (
+                            <TouchableOpacity
+                                key={tab.id}
                                 style={[
-                                    styles.tabPillText,
-                                    selectedTab === tab.id && styles.tabPillTextActive,
+                                    styles.tabPill,
+                                    isActive && styles.tabPillActive,
                                 ]}
+                                onPress={() => {
+                                    Vibration.vibrate(10);
+                                    setSelectedTab(tab.id);
+                                }}
+                                activeOpacity={0.75}
                             >
-                                {tab.label}
-                                {tab.id === 'ai' && customThemes.length > 0 ? ` (${customThemes.length})` : ''}
-                            </Text>
-                        </TouchableOpacity>
-                    ))}
+                                <Ionicons
+                                    name={tab.icon as any}
+                                    size={14}
+                                    color={isActive ? '#FFFFFF' : colors.textMuted}
+                                    style={{ marginRight: 6 }}
+                                />
+                                <Text
+                                    style={[
+                                        styles.tabPillText,
+                                        isActive && styles.tabPillTextActive,
+                                    ]}
+                                >
+                                    {tab.label}
+                                    {tab.id === 'ai' && customThemes.length > 0 ? ` (${customThemes.length})` : ''}
+                                </Text>
+                            </TouchableOpacity>
+                        );
+                    })}
                 </ScrollView>
 
                 {/* Themes Grid */}
                 <View style={styles.themesGrid}>
                     {filteredThemes.length === 0 ? (
                         <View style={styles.emptyState}>
-                            <Text style={styles.emptyEmoji}>🔍</Text>
-                            <Text style={styles.emptyTitle}>No encontramos temáticas</Text>
+                            <Ionicons name="search-outline" size={40} color={colors.textDisabled} />
+                            <Text style={styles.emptyTitle}>Sin resultados para "{searchQuery}"</Text>
                             <Text style={styles.emptySubtitle}>
-                                ¿Por qué no creas este tema con el Creador de IA?
+                                Puedes generar este tema automáticamente con la IA
                             </Text>
                             <TouchableOpacity
                                 style={styles.emptyCreateBtn}
                                 onPress={() => setShowAIModal(true)}
                             >
-                                <Text style={styles.emptyCreateBtnText}>⚡ Crear "{searchQuery}" con IA</Text>
+                                <MaterialCommunityIcons name="lightning-bolt" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+                                <Text style={styles.emptyCreateBtnText}>Generar con IA</Text>
                             </TouchableOpacity>
                         </View>
                     ) : (
@@ -290,24 +291,23 @@ export const ThemeSelectionScreen: React.FC<ThemeSelectionScreenProps> = ({
                                         <LinearGradient
                                             colors={
                                                 isSelected
-                                                    ? [`${theme.color}55`, `${theme.color}20`]
-                                                    : ['rgba(255,255,255,0.07)', 'rgba(255,255,255,0.02)']
+                                                    ? [`${theme.color}45`, 'rgba(255, 255, 255, 0.04)']
+                                                    : gradients.cardGlass
                                             }
                                             style={styles.themeCardGradient}
                                             start={{ x: 0, y: 0 }}
                                             end={{ x: 1, y: 1 }}
                                         >
-                                            {/* AI badge if custom */}
                                             {isCustom && (
                                                 <View style={styles.customThemeBadge}>
-                                                    <Text style={styles.customThemeBadgeText}>✨ IA</Text>
+                                                    <Text style={styles.customThemeBadgeText}>IA</Text>
                                                 </View>
                                             )}
 
                                             <View
                                                 style={[
                                                     styles.iconContainer,
-                                                    { backgroundColor: `${theme.color}35` },
+                                                    { backgroundColor: `${theme.color}25` },
                                                 ]}
                                             >
                                                 <Text style={styles.themeIcon}>{theme.icon}</Text>
@@ -336,7 +336,7 @@ export const ThemeSelectionScreen: React.FC<ThemeSelectionScreenProps> = ({
                                                         { backgroundColor: theme.color },
                                                     ]}
                                                 >
-                                                    <Text style={styles.selectedBadgeText}>✓</Text>
+                                                    <Ionicons name="checkmark" size={14} color="#FFFFFF" />
                                                 </View>
                                             )}
 
@@ -349,13 +349,13 @@ export const ThemeSelectionScreen: React.FC<ThemeSelectionScreenProps> = ({
                                                 />
                                             )}
 
-                                            {/* Delete option for custom themes */}
                                             {isCustom && (
                                                 <TouchableOpacity
                                                     style={styles.deleteCustomBtn}
+                                                    hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                                                     onPress={() => handleDeleteCustomTheme(theme.id, theme.name)}
                                                 >
-                                                    <Text style={styles.deleteCustomText}>🗑️</Text>
+                                                    <Ionicons name="trash-outline" size={14} color={colors.impostor} />
                                                 </TouchableOpacity>
                                             )}
                                         </LinearGradient>
@@ -367,34 +367,27 @@ export const ThemeSelectionScreen: React.FC<ThemeSelectionScreenProps> = ({
                 </View>
             </ScrollView>
 
-            {/* Footer with Start Button */}
+            {/* Fixed Bottom CTA Bar */}
             {selectedThemeId && (
-                <Animated.View style={[styles.footer, { opacity: fadeAnim }]}>
-                    <LinearGradient
-                        colors={['rgba(10, 10, 26, 0)', 'rgba(10, 10, 26, 0.95)', 'rgba(10, 10, 26, 1)']}
-                        style={styles.footerGradient}
+                <View style={styles.bottomBar}>
+                    <TouchableOpacity
+                        style={styles.confirmButton}
+                        onPress={handleConfirm}
+                        activeOpacity={0.85}
                     >
-                        <TouchableOpacity
-                            style={styles.confirmButton}
-                            onPress={handleConfirm}
-                            activeOpacity={0.85}
+                        <LinearGradient
+                            colors={[selectedThemeObj?.color || '#7952FF', '#7952FF']}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 0 }}
+                            style={styles.confirmButtonGradient}
                         >
-                            <LinearGradient
-                                colors={[selectedThemeObj?.color || '#6C5CE7', '#6C5CE7']}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 0 }}
-                                style={styles.confirmButtonGradient}
-                            >
-                                <Text style={styles.confirmButtonText}>
-                                    Repartir Roles ({selectedThemeObj?.name})
-                                </Text>
-                                <View style={styles.confirmButtonIconContainer}>
-                                    <Text style={styles.confirmButtonIcon}>🎭</Text>
-                                </View>
-                            </LinearGradient>
-                        </TouchableOpacity>
-                    </LinearGradient>
-                </Animated.View>
+                            <Text style={styles.confirmButtonText}>
+                                Iniciar con {selectedThemeObj?.name}
+                            </Text>
+                            <Ionicons name="arrow-forward" size={18} color="#FFFFFF" style={{ marginLeft: 8 }} />
+                        </LinearGradient>
+                    </TouchableOpacity>
+                </View>
             )}
 
             {/* AI Theme Creator Modal */}
@@ -403,119 +396,88 @@ export const ThemeSelectionScreen: React.FC<ThemeSelectionScreenProps> = ({
                 onClose={() => setShowAIModal(false)}
                 onThemeCreatedAndSelect={handleThemeCreatedByAI}
             />
-        </LinearGradient>
+        </View>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-    },
-    bgCircle1: {
-        position: 'absolute',
-        width: 200,
-        height: 200,
-        borderRadius: 100,
-        backgroundColor: '#6C5CE7',
-        top: -50,
-        right: -50,
-        opacity: 0.08,
-    },
-    bgCircle2: {
-        position: 'absolute',
-        width: 150,
-        height: 150,
-        borderRadius: 75,
-        backgroundColor: '#FD79A8',
-        bottom: 200,
-        left: -50,
-        opacity: 0.08,
+        backgroundColor: colors.bgDeep,
     },
     header: {
         paddingTop: 54,
-        paddingHorizontal: 22,
-        paddingBottom: 14,
+        paddingHorizontal: 20,
+        paddingBottom: 10,
     },
     backButton: {
-        marginBottom: 12,
-    },
-    backButtonInner: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 6,
-    },
-    backButtonIcon: {
-        fontSize: 18,
-        color: 'rgba(255, 255, 255, 0.7)',
+        paddingVertical: 4,
+        marginBottom: 10,
     },
     backButtonText: {
-        fontSize: 15,
-        color: 'rgba(255, 255, 255, 0.7)',
+        fontSize: 14,
+        fontWeight: '700',
+        color: colors.textSecondary,
     },
     titleContainer: {
-        gap: 4,
+        gap: 2,
     },
     title: {
-        fontSize: 30,
+        fontSize: 24,
         fontWeight: '900',
-        color: '#FFFFFF',
+        color: colors.textPrimary,
+        letterSpacing: 0.3,
     },
     subtitle: {
-        fontSize: 13,
-        color: 'rgba(255, 255, 255, 0.55)',
-        lineHeight: 18,
+        fontSize: 12,
+        color: colors.textMuted,
     },
     scrollView: {
         flex: 1,
     },
     scrollContent: {
-        paddingHorizontal: 22,
-        paddingBottom: 130,
+        paddingHorizontal: 20,
+        paddingBottom: 110,
     },
     aiHeroCard: {
-        borderRadius: 24,
+        borderRadius: 20,
         overflow: 'hidden',
-        marginBottom: 18,
-        shadowColor: '#6C5CE7',
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.5,
-        shadowRadius: 16,
-        elevation: 8,
+        marginBottom: 14,
     },
     aiHeroGradient: {
-        padding: 2,
+        padding: 1.5,
     },
     aiHeroInner: {
-        backgroundColor: '#12122b',
-        borderRadius: 22,
-        padding: 16,
+        backgroundColor: colors.bgCard,
+        borderRadius: 18.5,
+        padding: 14,
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 14,
+        gap: 12,
     },
     aiHeroIconBox: {
-        width: 52,
-        height: 52,
-        borderRadius: 18,
-        backgroundColor: 'rgba(108, 92, 231, 0.3)',
+        width: 44,
+        height: 44,
+        borderRadius: 14,
+        backgroundColor: 'rgba(121, 82, 255, 0.25)',
         justifyContent: 'center',
         alignItems: 'center',
         position: 'relative',
-    },
-    aiHeroIcon: {
-        fontSize: 28,
     },
     aiSparkleBadge: {
         position: 'absolute',
         top: -4,
         right: -4,
-        backgroundColor: '#FD79A8',
-        paddingHorizontal: 5,
-        paddingVertical: 2,
-        borderRadius: 8,
+        backgroundColor: colors.aiPink,
+        paddingHorizontal: 4,
+        paddingVertical: 1,
+        borderRadius: 6,
     },
     aiSparkleText: {
-        fontSize: 9,
+        fontSize: 8,
         fontWeight: '900',
         color: '#FFFFFF',
     },
@@ -527,172 +489,155 @@ const styles = StyleSheet.create({
         marginBottom: 2,
     },
     aiHeroBadge: {
-        fontSize: 10,
-        fontWeight: '800',
-        color: '#00CEC9',
+        fontSize: 9,
+        fontWeight: '900',
+        color: colors.cyan,
         letterSpacing: 1,
     },
     aiHeroTitle: {
-        fontSize: 18,
+        fontSize: 15,
         fontWeight: '900',
-        color: '#FFFFFF',
+        color: colors.textPrimary,
     },
     aiHeroSubtitle: {
         fontSize: 11,
-        color: 'rgba(255, 255, 255, 0.65)',
-        marginTop: 2,
-        lineHeight: 15,
+        color: colors.textMuted,
+        marginTop: 1,
     },
     aiHeroArrow: {
         width: 32,
         height: 32,
         borderRadius: 16,
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        backgroundColor: colors.bgGlassHover,
         justifyContent: 'center',
         alignItems: 'center',
-    },
-    aiHeroArrowText: {
-        fontSize: 16,
-    },
-    searchContainer: {
-        marginBottom: 14,
     },
     searchWrapper: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(255, 255, 255, 0.06)',
-        borderRadius: 16,
-        paddingHorizontal: 14,
+        backgroundColor: colors.bgCard,
+        borderRadius: 14,
+        paddingHorizontal: 12,
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.08)',
-    },
-    searchIcon: {
-        fontSize: 16,
-        marginRight: 8,
+        borderColor: colors.borderSubtle,
+        marginBottom: 12,
+        height: 44,
     },
     searchInput: {
         flex: 1,
-        height: 46,
-        color: '#FFFFFF',
+        color: colors.textPrimary,
         fontSize: 14,
         fontWeight: '600',
     },
     searchClearBtn: {
         padding: 4,
     },
-    searchClearText: {
-        color: 'rgba(255, 255, 255, 0.4)',
-        fontSize: 14,
-    },
     tabsRow: {
         flexDirection: 'row',
         gap: 8,
-        marginBottom: 16,
+        marginBottom: 14,
         paddingRight: 20,
     },
     tabPill: {
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-        paddingHorizontal: 14,
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: colors.bgCard,
+        paddingHorizontal: 12,
         paddingVertical: 8,
-        borderRadius: 14,
+        borderRadius: 12,
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.08)',
+        borderColor: colors.borderSubtle,
     },
     tabPillActive: {
-        backgroundColor: 'rgba(108, 92, 231, 0.3)',
-        borderColor: '#6C5CE7',
+        backgroundColor: 'rgba(121, 82, 255, 0.25)',
+        borderColor: colors.primary,
     },
     tabPillText: {
-        color: 'rgba(255, 255, 255, 0.6)',
+        color: colors.textMuted,
         fontSize: 12,
         fontWeight: '700',
     },
     tabPillTextActive: {
-        color: '#FFFFFF',
+        color: colors.textPrimary,
         fontWeight: '900',
     },
     themesGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
         justifyContent: 'space-between',
-        gap: 14,
+        gap: 10,
     },
     themeCardContainer: {
         width: CARD_WIDTH,
     },
     themeCard: {
-        borderRadius: 22,
+        borderRadius: 18,
         overflow: 'hidden',
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.08)',
+        borderColor: colors.borderSubtle,
     },
     themeCardSelected: {
         borderWidth: 0,
     },
     themeCardGradient: {
-        padding: 16,
+        padding: 14,
         alignItems: 'center',
-        minHeight: 155,
+        minHeight: 145,
         justifyContent: 'center',
         position: 'relative',
     },
     customThemeBadge: {
         position: 'absolute',
-        top: 10,
-        left: 10,
-        backgroundColor: 'rgba(0, 206, 201, 0.3)',
+        top: 8,
+        left: 8,
+        backgroundColor: 'rgba(0, 240, 255, 0.2)',
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 6,
+    },
+    customThemeBadgeText: {
+        fontSize: 9,
+        color: colors.cyan,
+        fontWeight: '900',
+    },
+    iconContainer: {
+        width: 50,
+        height: 50,
+        borderRadius: 16,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    themeIcon: {
+        fontSize: 26,
+    },
+    themeName: {
+        fontSize: 14,
+        fontWeight: '800',
+        color: colors.textPrimary,
+        textAlign: 'center',
+        marginBottom: 4,
+    },
+    wordCountBadge: {
+        backgroundColor: colors.bgGlassHover,
         paddingHorizontal: 8,
         paddingVertical: 2,
         borderRadius: 8,
     },
-    customThemeBadgeText: {
-        fontSize: 10,
-        color: '#00CEC9',
-        fontWeight: '800',
-    },
-    iconContainer: {
-        width: 58,
-        height: 58,
-        borderRadius: 18,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 10,
-    },
-    themeIcon: {
-        fontSize: 32,
-    },
-    themeName: {
-        fontSize: 15,
-        fontWeight: '800',
-        color: '#FFFFFF',
-        textAlign: 'center',
-        marginBottom: 6,
-    },
-    wordCountBadge: {
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-        paddingHorizontal: 8,
-        paddingVertical: 3,
-        borderRadius: 10,
-    },
     themeWordCount: {
         fontSize: 10,
-        color: 'rgba(255, 255, 255, 0.6)',
+        color: colors.textMuted,
         fontWeight: '600',
     },
     selectedBadge: {
         position: 'absolute',
-        top: 10,
-        right: 10,
-        width: 24,
-        height: 24,
-        borderRadius: 12,
+        top: 8,
+        right: 8,
+        width: 22,
+        height: 22,
+        borderRadius: 11,
         justifyContent: 'center',
         alignItems: 'center',
-    },
-    selectedBadgeText: {
-        fontSize: 12,
-        fontWeight: '900',
-        color: '#FFFFFF',
     },
     selectedBorder: {
         position: 'absolute',
@@ -700,92 +645,70 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         bottom: 0,
-        borderRadius: 22,
+        borderRadius: 18,
         borderWidth: 2,
     },
     deleteCustomBtn: {
         position: 'absolute',
-        bottom: 8,
-        right: 8,
+        bottom: 6,
+        right: 6,
         padding: 4,
-    },
-    deleteCustomText: {
-        fontSize: 14,
     },
     emptyState: {
         width: '100%',
         alignItems: 'center',
-        paddingVertical: 40,
-    },
-    emptyEmoji: {
-        fontSize: 42,
-        marginBottom: 8,
+        paddingVertical: 36,
+        gap: 8,
     },
     emptyTitle: {
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: '800',
-        color: '#FFFFFF',
+        color: colors.textPrimary,
     },
     emptySubtitle: {
-        fontSize: 13,
-        color: 'rgba(255, 255, 255, 0.5)',
+        fontSize: 12,
+        color: colors.textMuted,
         textAlign: 'center',
-        marginTop: 4,
-        marginBottom: 16,
+        marginBottom: 10,
     },
     emptyCreateBtn: {
-        backgroundColor: '#6C5CE7',
-        paddingHorizontal: 20,
-        paddingVertical: 12,
-        borderRadius: 16,
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: colors.primary,
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 12,
     },
     emptyCreateBtnText: {
         color: '#FFFFFF',
         fontWeight: '800',
-        fontSize: 14,
+        fontSize: 13,
     },
-    footer: {
+    bottomBar: {
         position: 'absolute',
         bottom: 0,
         left: 0,
         right: 0,
-    },
-    footerGradient: {
-        paddingHorizontal: 22,
-        paddingTop: 28,
-        paddingBottom: 34,
+        paddingHorizontal: 20,
+        paddingTop: 14,
+        paddingBottom: 36,
+        backgroundColor: 'rgba(7, 8, 12, 0.95)',
+        borderTopWidth: 1,
+        borderTopColor: colors.borderSubtle,
     },
     confirmButton: {
-        borderRadius: 22,
+        borderRadius: 16,
         overflow: 'hidden',
-        shadowColor: '#6C5CE7',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.5,
-        shadowRadius: 18,
-        elevation: 10,
     },
     confirmButtonGradient: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: 18,
-        paddingHorizontal: 28,
-        gap: 14,
+        paddingVertical: 16,
     },
     confirmButtonText: {
-        fontSize: 18,
-        fontWeight: '800',
+        fontSize: 16,
+        fontWeight: '900',
         color: '#FFFFFF',
-    },
-    confirmButtonIconContainer: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    confirmButtonIcon: {
-        fontSize: 18,
     },
 });

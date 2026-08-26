@@ -14,9 +14,10 @@ import {
     Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { aiThemeService, AI_SUGGESTION_CHIPS, GenerateThemeOptions } from '../services/aiThemeService';
+import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
+import { aiThemeService, AI_SUGGESTION_CHIPS } from '../services/aiThemeService';
 import { Theme, WordEntry } from '../types/game';
-import { colors } from '../styles/colors';
+import { colors, gradients } from '../styles/colors';
 
 interface AIThemeModalProps {
     visible: boolean;
@@ -25,11 +26,11 @@ interface AIThemeModalProps {
 }
 
 const LOADING_MESSAGES = [
-    '⚡ Conectando con Groq IA ultra-rápida...',
-    '🧠 Creando lista de palabras exclusivas...',
-    '🔍 Diseñando pistas sutiles para el impostor...',
-    '🎭 Balanceando palabras para el modo Undercover...',
-    '✨ ¡Casi listo para jugar!',
+    'Sintonizando red neuronal Groq...',
+    'Generando conceptos y palabras clave...',
+    'Diseñando pistas sutiles de infiltración...',
+    'Calibrando parejas para modo Undercover...',
+    '¡Finalizando detalles de la temática!',
 ];
 
 export const AIThemeModal: React.FC<AIThemeModalProps> = ({
@@ -55,21 +56,26 @@ export const AIThemeModal: React.FC<AIThemeModalProps> = ({
 
             Animated.loop(
                 Animated.sequence([
-                    Animated.timing(pulseAnim, { toValue: 1.1, duration: 800, useNativeDriver: true }),
-                    Animated.timing(pulseAnim, { toValue: 0.95, duration: 800, useNativeDriver: true }),
+                    Animated.timing(pulseAnim, { toValue: 1.08, duration: 700, useNativeDriver: true }),
+                    Animated.timing(pulseAnim, { toValue: 0.95, duration: 700, useNativeDriver: true }),
                 ])
+            ).start();
+
+            Animated.loop(
+                Animated.timing(rotateAnim, { toValue: 1, duration: 3000, useNativeDriver: true })
             ).start();
 
             return () => clearInterval(interval);
         } else {
             pulseAnim.setValue(1);
+            rotateAnim.setValue(0);
         }
     }, [isLoading]);
 
     const handleGenerate = async (selectedTopic?: string) => {
         const query = (selectedTopic || topic).trim();
         if (!query) {
-            Alert.alert('Tema Requerido', 'Por favor escribe un tema o elige una de las sugerencias rápidas.');
+            Alert.alert('Tema Requerido', 'Escribe un tema o selecciona una sugerencia rápida.');
             return;
         }
 
@@ -85,8 +91,8 @@ export const AIThemeModal: React.FC<AIThemeModalProps> = ({
             setGeneratedTheme(theme);
         } catch (error: any) {
             Alert.alert(
-                'Error de Generación',
-                error.message || 'No pudimos generar el tema. Verifica tu conexión e intenta de nuevo.'
+                'Generación de IA',
+                error.message || 'No fue posible generar el tema. Intenta nuevamente.'
             );
         } finally {
             setIsLoading(false);
@@ -116,6 +122,11 @@ export const AIThemeModal: React.FC<AIThemeModalProps> = ({
         });
     };
 
+    const spinInterpolate = rotateAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: ['0deg', '360deg'],
+    });
+
     return (
         <Modal
             visible={visible}
@@ -127,34 +138,44 @@ export const AIThemeModal: React.FC<AIThemeModalProps> = ({
                 style={styles.modalOverlay}
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             >
-                <View style={styles.modalContainer}>
+                <View style={styles.sheetContainer}>
                     <LinearGradient
-                        colors={['#1c1c38', '#101026', '#090918']}
-                        style={styles.modalGradient}
+                        colors={gradients.sheetGlass}
+                        style={styles.sheetGradient}
                         start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
+                        end={{ x: 0, y: 1 }}
                     >
-                        {/* Header */}
+                        {/* Drag Handle Indicator */}
+                        <View style={styles.handleContainer}>
+                            <View style={styles.handle} />
+                        </View>
+
+                        {/* Sheet Header */}
                         <View style={styles.modalHeader}>
                             <View style={styles.headerTitleRow}>
                                 <LinearGradient
-                                    colors={['#6C5CE7', '#FD79A8']}
+                                    colors={['#7952FF', '#FF4D94']}
                                     start={{ x: 0, y: 0 }}
                                     end={{ x: 1, y: 1 }}
                                     style={styles.aiBadgeIcon}
                                 >
-                                    <Text style={styles.aiBadgeIconText}>🤖</Text>
+                                    <MaterialCommunityIcons name="robot-outline" size={22} color="#FFFFFF" />
                                 </LinearGradient>
                                 <View style={{ flex: 1 }}>
-                                    <Text style={styles.modalTitle}>Crear Temática con IA</Text>
+                                    <View style={styles.aiTitleBadgeRow}>
+                                        <Text style={styles.modalTitle}>Generador IA</Text>
+                                        <View style={styles.proTag}>
+                                            <Text style={styles.proTagText}>GROQ LLM</Text>
+                                        </View>
+                                    </View>
                                     <Text style={styles.modalSubtitle}>
-                                        Escribe cualquier tema y la IA construirá palabras y pistas
+                                        Escribe cualquier idea para construir palabras y pistas
                                     </Text>
                                 </View>
                             </View>
 
-                            <TouchableOpacity style={styles.closeBtn} onPress={handleClose}>
-                                <Text style={styles.closeBtnText}>✕</Text>
+                            <TouchableOpacity style={styles.closeBtn} onPress={handleClose} activeOpacity={0.7}>
+                                <Ionicons name="close" size={20} color={colors.textSecondary} />
                             </TouchableOpacity>
                         </View>
 
@@ -169,12 +190,13 @@ export const AIThemeModal: React.FC<AIThemeModalProps> = ({
                                 <>
                                     {/* Input Section */}
                                     <View style={styles.inputSection}>
-                                        <Text style={styles.inputLabel}>¿Sobre qué tema quieres jugar?</Text>
+                                        <Text style={styles.inputLabel}>¿Qué temática deseas crear?</Text>
                                         <View style={styles.inputWrapper}>
+                                            <Ionicons name="sparkles-outline" size={18} color={colors.primaryLight} style={{ marginRight: 10 }} />
                                             <TextInput
                                                 style={styles.textInput}
-                                                placeholder="Ej. Reggaeton 2000s, Marvel, Comida Mexicana..."
-                                                placeholderTextColor="rgba(255, 255, 255, 0.35)"
+                                                placeholder="Ej. Reggaeton 2000s, Marvel, Cocina Italiana..."
+                                                placeholderTextColor={colors.textMuted}
                                                 value={topic}
                                                 onChangeText={setTopic}
                                                 maxLength={60}
@@ -183,7 +205,7 @@ export const AIThemeModal: React.FC<AIThemeModalProps> = ({
                                             />
                                             {topic.length > 0 && (
                                                 <TouchableOpacity onPress={() => setTopic('')} style={styles.clearInputBtn}>
-                                                    <Text style={styles.clearInputText}>✕</Text>
+                                                    <Ionicons name="close-circle" size={18} color={colors.textMuted} />
                                                 </TouchableOpacity>
                                             )}
                                         </View>
@@ -191,7 +213,7 @@ export const AIThemeModal: React.FC<AIThemeModalProps> = ({
 
                                     {/* Quick Suggestions Chips */}
                                     <View style={styles.chipsSection}>
-                                        <Text style={styles.sectionMiniLabel}>💡 O elige una idea popular:</Text>
+                                        <Text style={styles.sectionMiniLabel}>Sugerencias Rápidas</Text>
                                         <View style={styles.chipsGrid}>
                                             {AI_SUGGESTION_CHIPS.map((chip, index) => (
                                                 <TouchableOpacity
@@ -211,58 +233,72 @@ export const AIThemeModal: React.FC<AIThemeModalProps> = ({
 
                                     {/* Vibe / Tone Selector */}
                                     <View style={styles.vibeSection}>
-                                        <Text style={styles.sectionMiniLabel}>🎭 Tono de la partida:</Text>
+                                        <Text style={styles.sectionMiniLabel}>Tono de Partida</Text>
                                         <View style={styles.vibeRow}>
                                             {[
-                                                { key: 'casual', label: '🎉 Casual' },
-                                                { key: 'experto', label: '🧠 Experto' },
-                                                { key: 'picante', label: '🌶️ Fiesta' },
-                                                { key: 'familiar', label: '👶 Familiar' },
-                                            ].map(item => (
-                                                <TouchableOpacity
-                                                    key={item.key}
-                                                    style={[
-                                                        styles.vibePill,
-                                                        vibe === item.key && styles.vibePillActive,
-                                                    ]}
-                                                    onPress={() => setVibe(item.key as any)}
-                                                >
-                                                    <Text
+                                                { key: 'casual', label: 'Casual', icon: 'happy-outline' },
+                                                { key: 'experto', label: 'Experto', icon: 'school-outline' },
+                                                { key: 'picante', label: 'Fiesta', icon: 'flame-outline' },
+                                                { key: 'familiar', label: 'Familiar', icon: 'people-outline' },
+                                            ].map(item => {
+                                                const isActive = vibe === item.key;
+                                                return (
+                                                    <TouchableOpacity
+                                                        key={item.key}
                                                         style={[
-                                                            styles.vibePillText,
-                                                            vibe === item.key && styles.vibePillTextActive,
+                                                            styles.vibePill,
+                                                            isActive && styles.vibePillActive,
                                                         ]}
+                                                        onPress={() => setVibe(item.key as any)}
+                                                        activeOpacity={0.75}
                                                     >
-                                                        {item.label}
-                                                    </Text>
-                                                </TouchableOpacity>
-                                            ))}
+                                                        <Ionicons
+                                                            name={item.icon as any}
+                                                            size={16}
+                                                            color={isActive ? '#FFFFFF' : colors.textMuted}
+                                                            style={{ marginBottom: 4 }}
+                                                        />
+                                                        <Text
+                                                            style={[
+                                                                styles.vibePillText,
+                                                                isActive && styles.vibePillTextActive,
+                                                            ]}
+                                                        >
+                                                            {item.label}
+                                                        </Text>
+                                                    </TouchableOpacity>
+                                                );
+                                            })}
                                         </View>
                                     </View>
 
                                     {/* Word Count */}
                                     <View style={styles.countSection}>
-                                        <Text style={styles.sectionMiniLabel}>🔢 Cantidad de palabras:</Text>
+                                        <Text style={styles.sectionMiniLabel}>Número de Palabras</Text>
                                         <View style={styles.countRow}>
-                                            {[12, 18, 25].map(cnt => (
-                                                <TouchableOpacity
-                                                    key={cnt}
-                                                    style={[
-                                                        styles.countPill,
-                                                        wordCount === cnt && styles.countPillActive,
-                                                    ]}
-                                                    onPress={() => setWordCount(cnt)}
-                                                >
-                                                    <Text
+                                            {[12, 18, 24].map(cnt => {
+                                                const isActive = wordCount === cnt;
+                                                return (
+                                                    <TouchableOpacity
+                                                        key={cnt}
                                                         style={[
-                                                            styles.countPillText,
-                                                            wordCount === cnt && styles.countPillTextActive,
+                                                            styles.countPill,
+                                                            isActive && styles.countPillActive,
                                                         ]}
+                                                        onPress={() => setWordCount(cnt)}
+                                                        activeOpacity={0.75}
                                                     >
-                                                        {cnt} palabras
-                                                    </Text>
-                                                </TouchableOpacity>
-                                            ))}
+                                                        <Text
+                                                            style={[
+                                                                styles.countPillText,
+                                                                isActive && styles.countPillTextActive,
+                                                            ]}
+                                                        >
+                                                            {cnt} palabras
+                                                        </Text>
+                                                    </TouchableOpacity>
+                                                );
+                                            })}
                                         </View>
                                     </View>
                                 </>
@@ -274,23 +310,32 @@ export const AIThemeModal: React.FC<AIThemeModalProps> = ({
                                     <Animated.View
                                         style={[
                                             styles.loadingOrb,
-                                            { transform: [{ scale: pulseAnim }] },
+                                            {
+                                                transform: [
+                                                    { scale: pulseAnim },
+                                                    { rotate: spinInterpolate },
+                                                ],
+                                            },
                                         ]}
                                     >
                                         <LinearGradient
-                                            colors={['#6C5CE7', '#00CEC9', '#FD79A8']}
+                                            colors={['#7952FF', '#FF4D94', '#00F0FF']}
                                             style={styles.orbGradient}
+                                            start={{ x: 0, y: 0 }}
+                                            end={{ x: 1, y: 1 }}
                                         >
-                                            <Text style={styles.loadingEmoji}>✨</Text>
+                                            <View style={styles.orbInner}>
+                                                <MaterialCommunityIcons name="creation" size={32} color="#FFFFFF" />
+                                            </View>
                                         </LinearGradient>
                                     </Animated.View>
 
-                                    <ActivityIndicator size="large" color="#00CEC9" style={{ marginTop: 24 }} />
+                                    <ActivityIndicator size="small" color={colors.cyan} style={{ marginTop: 24 }} />
                                     <Text style={styles.loadingStatusText}>
                                         {LOADING_MESSAGES[loadingMsgIndex]}
                                     </Text>
                                     <Text style={styles.loadingSubtext}>
-                                        Generando temática inteligente con Groq LLM
+                                        Inferencia de alto rendimiento mediante Groq
                                     </Text>
                                 </View>
                             )}
@@ -300,24 +345,36 @@ export const AIThemeModal: React.FC<AIThemeModalProps> = ({
                                 <View style={styles.previewContainer}>
                                     <View style={styles.previewCardHeader}>
                                         <LinearGradient
-                                            colors={[`${generatedTheme.color}60`, `${generatedTheme.color}20`]}
+                                            colors={[`${generatedTheme.color}40`, 'rgba(255, 255, 255, 0.03)']}
                                             style={styles.previewHeaderGradient}
+                                            start={{ x: 0, y: 0 }}
+                                            end={{ x: 1, y: 1 }}
                                         >
-                                            <View style={[styles.previewIconBox, { backgroundColor: `${generatedTheme.color}50` }]}>
+                                            <View style={[styles.previewIconBox, { backgroundColor: `${generatedTheme.color}35` }]}>
                                                 <Text style={styles.previewIcon}>{generatedTheme.icon}</Text>
                                             </View>
                                             <View style={{ flex: 1 }}>
                                                 <Text style={styles.previewThemeName}>{generatedTheme.name}</Text>
-                                                <Text style={styles.previewBadge}>
-                                                    ✨ {generatedTheme.words.length} palabras generadas
-                                                </Text>
+                                                <View style={styles.previewMetaRow}>
+                                                    <View style={styles.wordsCountTag}>
+                                                        <Text style={styles.wordsCountTagText}>
+                                                            {generatedTheme.words.length} palabras generadas
+                                                        </Text>
+                                                    </View>
+                                                    <Text style={styles.readyBadge}>✓ Lista para jugar</Text>
+                                                </View>
                                             </View>
                                         </LinearGradient>
                                     </View>
 
-                                    <Text style={styles.wordsPreviewLabel}>
-                                        Palabras y Pistas generadas para el Impostor:
-                                    </Text>
+                                    <View style={styles.wordsListHeader}>
+                                        <Text style={styles.wordsPreviewLabel}>
+                                            Palabras y Pistas generadas:
+                                        </Text>
+                                        <Text style={styles.wordsPreviewHelp}>
+                                            Toca ✕ para descartar palabras
+                                        </Text>
+                                    </View>
 
                                     <View style={styles.wordsList}>
                                         {generatedTheme.words.map((item, idx) => (
@@ -329,15 +386,16 @@ export const AIThemeModal: React.FC<AIThemeModalProps> = ({
                                                     <Text style={styles.wordTitle}>{item.word}</Text>
                                                     {item.hint ? (
                                                         <Text style={styles.wordHint}>
-                                                            💡 Pista: <Text style={{ color: '#F1C40F' }}>{item.hint}</Text>
+                                                            Pista: <Text style={{ color: colors.warning }}>{item.hint}</Text>
                                                         </Text>
                                                     ) : null}
                                                 </View>
                                                 <TouchableOpacity
                                                     onPress={() => removeWord(idx)}
                                                     style={styles.deleteWordBtn}
+                                                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                                                 >
-                                                    <Text style={styles.deleteWordText}>✕</Text>
+                                                    <Ionicons name="trash-outline" size={16} color={colors.impostor} />
                                                 </TouchableOpacity>
                                             </View>
                                         ))}
@@ -361,15 +419,16 @@ export const AIThemeModal: React.FC<AIThemeModalProps> = ({
                                     <LinearGradient
                                         colors={
                                             topic.trim()
-                                                ? ['#6C5CE7', '#FD79A8', '#00CEC9']
-                                                : ['#3A3A55', '#2A2A40']
+                                                ? ['#7952FF', '#FF4D94', '#00F0FF']
+                                                : ['#2A2D3D', '#1B1E2B']
                                         }
                                         start={{ x: 0, y: 0 }}
                                         end={{ x: 1, y: 0 }}
                                         style={styles.generateButtonGradient}
                                     >
+                                        <MaterialCommunityIcons name="lightning-bolt" size={20} color="#FFFFFF" style={{ marginRight: 6 }} />
                                         <Text style={styles.generateButtonText}>
-                                            ⚡ Generar Temática con IA
+                                            Generar con IA
                                         </Text>
                                     </LinearGradient>
                                 </TouchableOpacity>
@@ -380,21 +439,23 @@ export const AIThemeModal: React.FC<AIThemeModalProps> = ({
                                         onPress={() => handleGenerate()}
                                         activeOpacity={0.8}
                                     >
-                                        <Text style={styles.secondaryRegenText}>🔄 Regenerar</Text>
+                                        <Feather name="refresh-cw" size={16} color={colors.textPrimary} style={{ marginRight: 6 }} />
+                                        <Text style={styles.secondaryRegenText}>Regenerar</Text>
                                     </TouchableOpacity>
 
                                     <TouchableOpacity
                                         style={styles.primaryPlayBtn}
                                         onPress={handleUseTheme}
-                                        activeOpacity={0.8}
+                                        activeOpacity={0.85}
                                     >
                                         <LinearGradient
-                                            colors={['#00B894', '#00CEC9']}
+                                            colors={['#00B894', '#00F59B']}
                                             start={{ x: 0, y: 0 }}
                                             end={{ x: 1, y: 0 }}
                                             style={styles.primaryPlayGradient}
                                         >
-                                            <Text style={styles.primaryPlayText}>🎮 Jugar con este Tema</Text>
+                                            <Ionicons name="play" size={18} color="#07080C" style={{ marginRight: 6 }} />
+                                            <Text style={styles.primaryPlayText}>Jugar Ahora</Text>
                                         </LinearGradient>
                                     </TouchableOpacity>
                                 </View>
@@ -413,116 +474,135 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(0, 0, 0, 0.85)',
         justifyContent: 'flex-end',
     },
-    modalContainer: {
-        height: '92%',
-        borderTopLeftRadius: 32,
-        borderTopRightRadius: 32,
+    sheetContainer: {
+        height: '90%',
+        borderTopLeftRadius: 28,
+        borderTopRightRadius: 28,
         overflow: 'hidden',
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.15)',
+        borderColor: colors.borderSubtle,
     },
-    modalGradient: {
+    sheetGradient: {
         flex: 1,
+    },
+    handleContainer: {
+        alignItems: 'center',
+        paddingTop: 10,
+        paddingBottom: 6,
+    },
+    handle: {
+        width: 38,
+        height: 4,
+        borderRadius: 2,
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
     },
     modalHeader: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: 24,
-        paddingTop: 24,
-        paddingBottom: 16,
+        paddingHorizontal: 20,
+        paddingTop: 10,
+        paddingBottom: 14,
         borderBottomWidth: 1,
-        borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+        borderBottomColor: colors.borderSubtle,
     },
     headerTitleRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 14,
+        gap: 12,
         flex: 1,
     },
     aiBadgeIcon: {
-        width: 46,
-        height: 46,
-        borderRadius: 23,
+        width: 40,
+        height: 40,
+        borderRadius: 14,
         justifyContent: 'center',
         alignItems: 'center',
     },
-    aiBadgeIconText: {
-        fontSize: 24,
+    aiTitleBadgeRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
     },
     modalTitle: {
-        fontSize: 20,
+        fontSize: 18,
         fontWeight: '900',
-        color: '#FFFFFF',
+        color: colors.textPrimary,
+        letterSpacing: 0.3,
+    },
+    proTag: {
+        backgroundColor: 'rgba(121, 82, 255, 0.25)',
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 6,
+        borderWidth: 1,
+        borderColor: colors.primaryLight,
+    },
+    proTagText: {
+        fontSize: 9,
+        fontWeight: '900',
+        color: colors.primaryLight,
+        letterSpacing: 0.5,
     },
     modalSubtitle: {
         fontSize: 12,
-        color: 'rgba(255, 255, 255, 0.6)',
+        color: colors.textMuted,
         marginTop: 2,
     },
     closeBtn: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: colors.bgGlassHover,
         justifyContent: 'center',
         alignItems: 'center',
-        marginLeft: 10,
-    },
-    closeBtnText: {
-        fontSize: 16,
-        color: 'rgba(255, 255, 255, 0.7)',
-        fontWeight: '700',
+        marginLeft: 8,
     },
     modalBody: {
         flex: 1,
     },
     scrollContent: {
-        padding: 24,
-        paddingBottom: 40,
+        padding: 20,
+        paddingBottom: 30,
     },
     inputSection: {
         marginBottom: 20,
     },
     inputLabel: {
-        fontSize: 15,
+        fontSize: 14,
         fontWeight: '700',
-        color: '#FFFFFF',
-        marginBottom: 10,
+        color: colors.textPrimary,
+        marginBottom: 8,
     },
     inputWrapper: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(255, 255, 255, 0.07)',
-        borderRadius: 18,
-        borderWidth: 1.5,
-        borderColor: 'rgba(108, 92, 231, 0.4)',
-        paddingHorizontal: 16,
+        backgroundColor: colors.bgElevated,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: colors.borderLight,
+        paddingHorizontal: 14,
     },
     textInput: {
         flex: 1,
-        height: 54,
-        color: '#FFFFFF',
-        fontSize: 16,
+        height: 50,
+        color: colors.textPrimary,
+        fontSize: 15,
         fontWeight: '600',
     },
     clearInputBtn: {
-        padding: 6,
-    },
-    clearInputText: {
-        color: 'rgba(255, 255, 255, 0.4)',
-        fontSize: 14,
+        padding: 4,
     },
     sectionMiniLabel: {
-        fontSize: 13,
-        fontWeight: '700',
-        color: 'rgba(255, 255, 255, 0.7)',
-        marginBottom: 10,
+        fontSize: 12,
+        fontWeight: '800',
+        color: colors.textMuted,
+        marginBottom: 8,
         textTransform: 'uppercase',
-        letterSpacing: 0.5,
+        letterSpacing: 0.8,
     },
     chipsSection: {
-        marginBottom: 22,
+        marginBottom: 20,
     },
     chipsGrid: {
         flexDirection: 'row',
@@ -530,15 +610,15 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     chipButton: {
-        backgroundColor: 'rgba(108, 92, 231, 0.15)',
-        paddingHorizontal: 14,
-        paddingVertical: 10,
-        borderRadius: 14,
+        backgroundColor: colors.bgGlass,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 12,
         borderWidth: 1,
-        borderColor: 'rgba(108, 92, 231, 0.3)',
+        borderColor: colors.borderSubtle,
     },
     chipText: {
-        color: '#FFFFFF',
+        color: colors.textSecondary,
         fontSize: 13,
         fontWeight: '600',
     },
@@ -551,24 +631,24 @@ const styles = StyleSheet.create({
     },
     vibePill: {
         flex: 1,
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-        paddingVertical: 12,
+        backgroundColor: colors.bgGlass,
+        paddingVertical: 10,
         borderRadius: 14,
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.08)',
+        borderColor: colors.borderSubtle,
     },
     vibePillActive: {
-        backgroundColor: 'rgba(108, 92, 231, 0.3)',
-        borderColor: '#6C5CE7',
+        backgroundColor: 'rgba(121, 82, 255, 0.25)',
+        borderColor: colors.primary,
     },
     vibePillText: {
-        fontSize: 12,
+        fontSize: 11,
         fontWeight: '600',
-        color: 'rgba(255, 255, 255, 0.6)',
+        color: colors.textMuted,
     },
     vibePillTextActive: {
-        color: '#FFFFFF',
+        color: colors.textPrimary,
         fontWeight: '800',
     },
     countSection: {
@@ -576,28 +656,28 @@ const styles = StyleSheet.create({
     },
     countRow: {
         flexDirection: 'row',
-        gap: 10,
+        gap: 8,
     },
     countPill: {
         flex: 1,
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-        paddingVertical: 12,
-        borderRadius: 14,
+        backgroundColor: colors.bgGlass,
+        paddingVertical: 10,
+        borderRadius: 12,
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.08)',
+        borderColor: colors.borderSubtle,
     },
     countPillActive: {
-        backgroundColor: 'rgba(0, 206, 201, 0.25)',
-        borderColor: '#00CEC9',
+        backgroundColor: 'rgba(0, 240, 255, 0.15)',
+        borderColor: colors.cyan,
     },
     countPillText: {
-        fontSize: 13,
-        color: 'rgba(255, 255, 255, 0.6)',
+        fontSize: 12,
+        color: colors.textMuted,
         fontWeight: '600',
     },
     countPillTextActive: {
-        color: '#00CEC9',
+        color: colors.cyan,
         fontWeight: '800',
     },
     loadingContainer: {
@@ -605,182 +685,204 @@ const styles = StyleSheet.create({
         paddingVertical: 40,
     },
     loadingOrb: {
-        width: 100,
-        height: 100,
-        borderRadius: 50,
-        overflow: 'hidden',
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        padding: 2,
     },
     orbGradient: {
         flex: 1,
+        borderRadius: 38,
+        padding: 2,
+    },
+    orbInner: {
+        flex: 1,
+        backgroundColor: colors.bgDeep,
+        borderRadius: 36,
         justifyContent: 'center',
         alignItems: 'center',
     },
-    loadingEmoji: {
-        fontSize: 48,
-    },
     loadingStatusText: {
-        color: '#FFFFFF',
-        fontSize: 17,
-        fontWeight: '700',
+        color: colors.textPrimary,
+        fontSize: 16,
+        fontWeight: '800',
         textAlign: 'center',
-        marginTop: 16,
+        marginTop: 18,
     },
     loadingSubtext: {
-        color: 'rgba(255, 255, 255, 0.5)',
-        fontSize: 13,
-        marginTop: 6,
+        color: colors.textMuted,
+        fontSize: 12,
+        marginTop: 4,
         textAlign: 'center',
     },
     previewContainer: {
-        gap: 14,
+        gap: 12,
     },
     previewCardHeader: {
-        borderRadius: 20,
+        borderRadius: 18,
         overflow: 'hidden',
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.15)',
+        borderColor: colors.borderLight,
     },
     previewHeaderGradient: {
         flexDirection: 'row',
         alignItems: 'center',
         padding: 16,
-        gap: 14,
+        gap: 12,
     },
     previewIconBox: {
-        width: 52,
-        height: 52,
-        borderRadius: 16,
+        width: 48,
+        height: 48,
+        borderRadius: 14,
         justifyContent: 'center',
         alignItems: 'center',
     },
     previewIcon: {
-        fontSize: 28,
+        fontSize: 26,
     },
     previewThemeName: {
-        fontSize: 20,
+        fontSize: 18,
         fontWeight: '900',
-        color: '#FFFFFF',
+        color: colors.textPrimary,
     },
-    previewBadge: {
-        fontSize: 12,
-        color: '#00CEC9',
-        fontWeight: '700',
-        marginTop: 2,
+    previewMetaRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginTop: 4,
     },
-    wordsPreviewLabel: {
-        fontSize: 14,
+    wordsCountTag: {
+        backgroundColor: 'rgba(0, 240, 255, 0.15)',
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 6,
+    },
+    wordsCountTagText: {
+        fontSize: 11,
+        color: colors.cyan,
         fontWeight: '700',
-        color: 'rgba(255, 255, 255, 0.8)',
+    },
+    readyBadge: {
+        fontSize: 11,
+        color: colors.success,
+        fontWeight: '700',
+    },
+    wordsListHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
         marginTop: 6,
     },
+    wordsPreviewLabel: {
+        fontSize: 13,
+        fontWeight: '800',
+        color: colors.textSecondary,
+    },
+    wordsPreviewHelp: {
+        fontSize: 11,
+        color: colors.textMuted,
+    },
     wordsList: {
-        gap: 8,
+        gap: 6,
     },
     wordItemRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-        borderRadius: 14,
+        backgroundColor: colors.bgElevated,
+        borderRadius: 12,
         padding: 12,
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.07)',
+        borderColor: colors.borderSubtle,
     },
     wordNumberBadge: {
-        width: 26,
-        height: 26,
-        borderRadius: 13,
-        backgroundColor: 'rgba(108, 92, 231, 0.3)',
+        width: 22,
+        height: 22,
+        borderRadius: 11,
+        backgroundColor: colors.bgGlassHover,
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: 12,
+        marginRight: 10,
     },
     wordNumberText: {
-        color: '#A29BFE',
-        fontSize: 12,
+        color: colors.primaryLight,
+        fontSize: 11,
         fontWeight: '800',
     },
     wordDetails: {
         flex: 1,
     },
     wordTitle: {
-        fontSize: 16,
+        fontSize: 15,
         fontWeight: '700',
-        color: '#FFFFFF',
+        color: colors.textPrimary,
     },
     wordHint: {
         fontSize: 12,
-        color: 'rgba(255, 255, 255, 0.5)',
+        color: colors.textMuted,
         marginTop: 2,
     },
     deleteWordBtn: {
-        padding: 8,
-    },
-    deleteWordText: {
-        color: 'rgba(255, 71, 87, 0.8)',
-        fontSize: 16,
-        fontWeight: '700',
+        padding: 6,
     },
     modalFooter: {
-        padding: 20,
+        padding: 16,
         borderTopWidth: 1,
-        borderTopColor: 'rgba(255, 255, 255, 0.08)',
-        backgroundColor: 'rgba(10, 10, 26, 0.95)',
+        borderTopColor: colors.borderSubtle,
+        backgroundColor: colors.bgDeep,
     },
     generateButton: {
-        borderRadius: 20,
+        borderRadius: 16,
         overflow: 'hidden',
-        shadowColor: '#6C5CE7',
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.5,
-        shadowRadius: 12,
-        elevation: 8,
     },
     generateButtonDisabled: {
-        opacity: 0.6,
-        shadowOpacity: 0,
-        elevation: 0,
+        opacity: 0.5,
     },
     generateButtonGradient: {
-        paddingVertical: 18,
+        flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
+        paddingVertical: 16,
     },
     generateButtonText: {
-        fontSize: 18,
-        fontWeight: '800',
+        fontSize: 16,
+        fontWeight: '900',
         color: '#FFFFFF',
         letterSpacing: 0.5,
     },
     actionButtonsRow: {
         flexDirection: 'row',
-        gap: 12,
+        gap: 10,
     },
     secondaryRegenBtn: {
         flex: 1,
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-        paddingVertical: 16,
-        borderRadius: 18,
+        flexDirection: 'row',
+        backgroundColor: colors.bgGlassHover,
+        paddingVertical: 15,
+        borderRadius: 16,
         alignItems: 'center',
         justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: colors.borderLight,
     },
     secondaryRegenText: {
-        color: '#FFFFFF',
-        fontSize: 15,
+        color: colors.textPrimary,
+        fontSize: 14,
         fontWeight: '700',
     },
     primaryPlayBtn: {
-        flex: 2,
-        borderRadius: 18,
+        flex: 1.5,
+        borderRadius: 16,
         overflow: 'hidden',
     },
     primaryPlayGradient: {
-        paddingVertical: 16,
+        flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
+        paddingVertical: 15,
     },
     primaryPlayText: {
-        color: '#FFFFFF',
-        fontSize: 16,
-        fontWeight: '800',
+        color: '#07080C',
+        fontSize: 15,
+        fontWeight: '900',
     },
 });

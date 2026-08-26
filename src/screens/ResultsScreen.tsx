@@ -9,8 +9,9 @@ import {
     Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import { useGame } from '../context/GameContext';
-import { colors } from '../styles/colors';
+import { colors, gradients } from '../styles/colors';
 
 const { width } = Dimensions.get('window');
 
@@ -26,17 +27,16 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
     const { gameState, replayCurrentTheme, resetGame, allThemes } = useGame();
     const currentTheme = allThemes.find(t => t.id === gameState.config.themeId);
     const impostors = gameState.players.filter(p => p.isImpostor);
-    const crewmates = gameState.players.filter(p => !p.isImpostor);
     const isCrewmatesWinner = gameState.winner === 'crewmates';
 
     const fadeAnim = useRef(new Animated.Value(0)).current;
-    const scaleAnim = useRef(new Animated.Value(0.9)).current;
-    const bannerAnim = useRef(new Animated.Value(-40)).current;
+    const scaleAnim = useRef(new Animated.Value(0.95)).current;
+    const bannerAnim = useRef(new Animated.Value(-20)).current;
 
     useEffect(() => {
         Animated.parallel([
-            Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
-            Animated.spring(scaleAnim, { toValue: 1, friction: 8, tension: 40, useNativeDriver: true }),
+            Animated.timing(fadeAnim, { toValue: 1, duration: 450, useNativeDriver: true }),
+            Animated.spring(scaleAnim, { toValue: 1, friction: 8, tension: 50, useNativeDriver: true }),
             Animated.spring(bannerAnim, { toValue: 0, friction: 7, useNativeDriver: true }),
         ]).start();
     }, []);
@@ -52,14 +52,11 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
     };
 
     return (
-        <LinearGradient
-            colors={['#0a0a1a', '#1a1a3a', '#0f0f2a']}
-            style={styles.container}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-        >
-            <View style={styles.bgCircle1} />
-            <View style={styles.bgCircle2} />
+        <View style={styles.container}>
+            <LinearGradient
+                colors={gradients.appBackground}
+                style={StyleSheet.absoluteFillObject}
+            />
 
             <ScrollView
                 style={styles.scroll}
@@ -82,63 +79,77 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
                         <LinearGradient
                             colors={
                                 isCrewmatesWinner
-                                    ? ['rgba(0, 184, 148, 0.4)', 'rgba(0, 206, 201, 0.15)']
-                                    : ['rgba(255, 71, 87, 0.4)', 'rgba(232, 65, 65, 0.15)']
+                                    ? ['rgba(0, 240, 255, 0.25)', 'rgba(0, 184, 148, 0.05)']
+                                    : ['rgba(255, 42, 85, 0.25)', 'rgba(214, 19, 60, 0.05)']
                             }
-                            style={styles.bannerGradient}
+                            style={[
+                                styles.bannerGradient,
+                                { borderColor: isCrewmatesWinner ? colors.cyanGlow : colors.impostorGlow },
+                            ]}
                         >
-                            <Text style={styles.bannerEmoji}>
-                                {isCrewmatesWinner ? '🏆' : '🔪'}
-                            </Text>
+                            <View
+                                style={[
+                                    styles.bannerIconCircle,
+                                    { backgroundColor: isCrewmatesWinner ? 'rgba(0, 240, 255, 0.2)' : 'rgba(255, 42, 85, 0.2)' },
+                                ]}
+                            >
+                                {isCrewmatesWinner ? (
+                                    <Ionicons name="trophy" size={32} color={colors.cyan} />
+                                ) : (
+                                    <MaterialCommunityIcons name="knife-military" size={32} color={colors.impostor} />
+                                )}
+                            </View>
+
                             <Text
                                 style={[
                                     styles.bannerTitle,
-                                    { color: isCrewmatesWinner ? '#00CEC9' : '#FF4757' },
+                                    { color: isCrewmatesWinner ? colors.cyan : colors.impostor },
                                 ]}
                             >
                                 {isCrewmatesWinner
-                                    ? '¡TRIPULANTES GANAN!'
-                                    : '¡EL IMPOSTOR GANA!'}
+                                    ? '¡VICTORIA TRIPULANTE!'
+                                    : '¡VICTORIA DEL IMPOSTOR!'}
                             </Text>
+
                             <Text style={styles.bannerSubtitle}>
                                 {isCrewmatesWinner
-                                    ? 'El impostor fue descubierto y neutralizado.'
-                                    : 'El impostor logró infiltrarse y engañar a todos.'}
+                                    ? 'La tripulación descubrió y expulsó al infiltrado.'
+                                    : 'El impostor logró pasar desapercibido y triunfar.'}
                             </Text>
                         </LinearGradient>
                     </Animated.View>
 
-                    {/* Secret Word Reveal Card */}
+                    {/* Secret Word Card */}
                     <View style={styles.card}>
                         <LinearGradient
-                            colors={['rgba(255, 255, 255, 0.08)', 'rgba(255, 255, 255, 0.02)']}
+                            colors={gradients.cardGlass}
                             style={styles.cardGradient}
                         >
                             <Text style={styles.cardLabel}>PALABRA SECRETA</Text>
-                            <View style={styles.secretWordBadge}>
-                                <LinearGradient
-                                    colors={['#6C5CE7', '#A29BFE']}
-                                    style={styles.secretWordGradient}
-                                >
-                                    <Text style={styles.secretWordText}>{gameState.secretWord}</Text>
-                                </LinearGradient>
+
+                            <View style={styles.secretWordBox}>
+                                <Text style={styles.secretWordText}>{gameState.secretWord}</Text>
                             </View>
 
                             <View style={styles.themeInfoRow}>
-                                <Text style={styles.themeBadgeText}>
-                                    {currentTheme?.icon} {currentTheme?.name}
-                                </Text>
-                                {gameState.secretHint ? (
-                                    <Text style={styles.hintBadgeText}>
-                                        💡 Pista: {gameState.secretHint}
+                                <View style={styles.themeBadge}>
+                                    <Text style={styles.themeBadgeText}>
+                                        {currentTheme?.icon} {currentTheme?.name}
                                     </Text>
+                                </View>
+                                {gameState.secretHint ? (
+                                    <View style={styles.hintBadge}>
+                                        <Text style={styles.hintBadgeText}>
+                                            Pista: {gameState.secretHint}
+                                        </Text>
+                                    </View>
                                 ) : null}
                             </View>
 
                             {gameState.config.gameMode === 'undercover' && gameState.undercoverWord ? (
-                                <View style={styles.undercoverCard}>
+                                <View style={styles.undercoverWordCard}>
                                     <Text style={styles.undercoverLabel}>
-                                        🕵️ Palabra Camuflada del Impostor:
+                                        Palabra Camuflada (Undercover):
                                     </Text>
                                     <Text style={styles.undercoverWordText}>
                                         "{gameState.undercoverWord}"
@@ -151,17 +162,17 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
                     {/* Impostor Identity Card */}
                     <View style={styles.card}>
                         <LinearGradient
-                            colors={['rgba(255, 71, 87, 0.15)', 'rgba(255, 71, 87, 0.03)']}
+                            colors={['rgba(255, 42, 85, 0.1)', 'rgba(255, 42, 85, 0.02)']}
                             style={styles.cardGradient}
                         >
-                            <Text style={[styles.cardLabel, { color: '#FF6B81' }]}>
-                                {impostors.length === 1 ? '🔪 EL IMPOSTOR ERA' : '🔪 LOS IMPOSTORES ERAN'}
+                            <Text style={[styles.cardLabel, { color: colors.impostorLight }]}>
+                                {impostors.length === 1 ? 'EL IMPOSTOR ERA' : 'LOS IMPOSTORES ERAN'}
                             </Text>
                             <View style={styles.impostorList}>
                                 {impostors.map(imp => (
                                     <View key={imp.id} style={styles.impostorRow}>
-                                        <View style={styles.impostorAvatar}>
-                                            <Text style={styles.impostorAvatarText}>🔪</Text>
+                                        <View style={styles.impostorAvatarBox}>
+                                            <MaterialCommunityIcons name="incognito" size={20} color={colors.impostor} />
                                         </View>
                                         <Text style={styles.impostorName}>{imp.name}</Text>
                                     </View>
@@ -174,15 +185,15 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
                     {gameState.votingHistory && gameState.votingHistory.length > 0 && (
                         <View style={styles.card}>
                             <LinearGradient
-                                colors={['rgba(255, 255, 255, 0.05)', 'rgba(255, 255, 255, 0.01)']}
+                                colors={gradients.cardGlass}
                                 style={styles.cardGradient}
                             >
-                                <Text style={styles.cardLabel}>🗳️ RESUMEN DE VOTOS</Text>
+                                <Text style={styles.cardLabel}>REGISTRO DE VOTOS</Text>
                                 <View style={styles.voteList}>
                                     {gameState.votingHistory.map((item, idx) => (
                                         <View key={idx} style={styles.voteItem}>
                                             <Text style={styles.voterName}>{item.voterName}</Text>
-                                            <Text style={styles.voteArrow}>votó por ➔</Text>
+                                            <Ionicons name="arrow-forward" size={12} color={colors.textDisabled} style={{ marginHorizontal: 6 }} />
                                             <Text style={styles.targetName}>{item.targetName}</Text>
                                         </View>
                                     ))}
@@ -199,13 +210,14 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
                             activeOpacity={0.85}
                         >
                             <LinearGradient
-                                colors={['#6C5CE7', '#A29BFE', '#6C5CE7']}
+                                colors={['#7952FF', '#9D7DFF']}
                                 start={{ x: 0, y: 0 }}
                                 end={{ x: 1, y: 0 }}
                                 style={styles.replayGradient}
                             >
+                                <Feather name="refresh-cw" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
                                 <Text style={styles.replayButtonText}>
-                                    🔄 Revancha (Misma Temática)
+                                    Revancha Inmediata
                                 </Text>
                             </LinearGradient>
                         </TouchableOpacity>
@@ -213,47 +225,24 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
                         <TouchableOpacity
                             style={styles.newGameButton}
                             onPress={handleNewGame}
-                            activeOpacity={0.85}
+                            activeOpacity={0.8}
                         >
-                            <LinearGradient
-                                colors={['rgba(255, 255, 255, 0.15)', 'rgba(255, 255, 255, 0.05)']}
-                                style={styles.newGameGradient}
-                            >
-                                <Text style={styles.newGameButtonText}>
-                                    🎭 Cambiar Temática / Configuración
-                                </Text>
-                            </LinearGradient>
+                            <Ionicons name="grid-outline" size={16} color={colors.textSecondary} style={{ marginRight: 6 }} />
+                            <Text style={styles.newGameButtonText}>
+                                Cambiar Temática
+                            </Text>
                         </TouchableOpacity>
                     </View>
                 </Animated.View>
             </ScrollView>
-        </LinearGradient>
+        </View>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-    },
-    bgCircle1: {
-        position: 'absolute',
-        width: 300,
-        height: 300,
-        borderRadius: 150,
-        backgroundColor: '#00CEC9',
-        top: -100,
-        right: -100,
-        opacity: 0.08,
-    },
-    bgCircle2: {
-        position: 'absolute',
-        width: 250,
-        height: 250,
-        borderRadius: 125,
-        backgroundColor: '#6C5CE7',
-        bottom: 80,
-        left: -80,
-        opacity: 0.08,
+        backgroundColor: colors.bgDeep,
     },
     scroll: {
         flex: 1,
@@ -263,137 +252,153 @@ const styles = StyleSheet.create({
         paddingBottom: 40,
     },
     content: {
-        paddingHorizontal: 24,
+        paddingHorizontal: 20,
+        gap: 12,
     },
     bannerContainer: {
-        borderRadius: 28,
+        borderRadius: 24,
         overflow: 'hidden',
-        marginBottom: 20,
-        borderWidth: 1.5,
-        borderColor: 'rgba(255, 255, 255, 0.15)',
     },
     bannerGradient: {
-        padding: 24,
+        padding: 22,
         alignItems: 'center',
+        borderWidth: 1,
+        borderRadius: 24,
     },
-    bannerEmoji: {
-        fontSize: 54,
-        marginBottom: 8,
+    bannerIconCircle: {
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 10,
     },
     bannerTitle: {
-        fontSize: 26,
+        fontSize: 22,
         fontWeight: '900',
-        letterSpacing: 1.5,
+        letterSpacing: 1,
         textAlign: 'center',
     },
     bannerSubtitle: {
-        fontSize: 13,
-        color: 'rgba(255, 255, 255, 0.7)',
+        fontSize: 12,
+        color: colors.textSecondary,
         textAlign: 'center',
-        marginTop: 6,
+        marginTop: 4,
     },
     card: {
-        borderRadius: 22,
+        borderRadius: 20,
         overflow: 'hidden',
-        marginBottom: 14,
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.08)',
+        borderColor: colors.borderSubtle,
     },
     cardGradient: {
-        padding: 20,
+        padding: 18,
         alignItems: 'center',
     },
     cardLabel: {
-        fontSize: 12,
-        fontWeight: '800',
-        color: 'rgba(255, 255, 255, 0.5)',
+        fontSize: 11,
+        fontWeight: '900',
+        color: colors.textMuted,
         letterSpacing: 1.5,
-        marginBottom: 12,
+        marginBottom: 10,
         textAlign: 'center',
     },
-    secretWordBadge: {
-        borderRadius: 18,
-        overflow: 'hidden',
-        width: '100%',
-        marginBottom: 12,
-    },
-    secretWordGradient: {
-        paddingVertical: 18,
+    secretWordBox: {
+        backgroundColor: colors.bgElevated,
+        borderRadius: 16,
+        paddingVertical: 16,
         paddingHorizontal: 24,
+        width: '100%',
         alignItems: 'center',
+        marginBottom: 10,
+        borderWidth: 1,
+        borderColor: colors.borderLight,
     },
     secretWordText: {
-        fontSize: 32,
+        fontSize: 28,
         fontWeight: '900',
-        color: '#FFFFFF',
+        color: colors.textPrimary,
         textAlign: 'center',
     },
     themeInfoRow: {
         flexDirection: 'row',
-        gap: 12,
+        gap: 8,
         alignItems: 'center',
         flexWrap: 'wrap',
         justifyContent: 'center',
     },
+    themeBadge: {
+        backgroundColor: colors.bgGlassHover,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 8,
+    },
     themeBadgeText: {
-        color: 'rgba(255, 255, 255, 0.7)',
-        fontSize: 13,
-        fontWeight: '600',
+        color: colors.textSecondary,
+        fontSize: 12,
+        fontWeight: '700',
+    },
+    hintBadge: {
+        backgroundColor: 'rgba(255, 184, 0, 0.15)',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 8,
     },
     hintBadgeText: {
-        color: '#F1C40F',
-        fontSize: 13,
-        fontWeight: '600',
+        color: colors.warning,
+        fontSize: 12,
+        fontWeight: '700',
     },
-    undercoverCard: {
-        marginTop: 14,
-        backgroundColor: 'rgba(0, 0, 0, 0.3)',
-        borderRadius: 14,
-        padding: 12,
+    undercoverWordCard: {
+        marginTop: 12,
+        backgroundColor: colors.bgElevated,
+        borderRadius: 12,
+        padding: 10,
         width: '100%',
         alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 77, 148, 0.3)',
     },
     undercoverLabel: {
-        fontSize: 12,
-        color: 'rgba(255, 255, 255, 0.6)',
-        fontWeight: '600',
+        fontSize: 11,
+        color: colors.textMuted,
+        fontWeight: '700',
     },
     undercoverWordText: {
-        fontSize: 18,
-        fontWeight: '800',
-        color: '#FD79A8',
-        marginTop: 4,
+        fontSize: 16,
+        fontWeight: '900',
+        color: colors.aiPink,
+        marginTop: 2,
     },
     impostorList: {
-        gap: 10,
+        gap: 8,
         width: '100%',
     },
     impostorRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(255, 71, 87, 0.2)',
-        borderRadius: 16,
+        backgroundColor: 'rgba(255, 42, 85, 0.15)',
+        borderRadius: 14,
         padding: 12,
-        gap: 14,
+        gap: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 42, 85, 0.3)',
     },
-    impostorAvatar: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: 'rgba(255, 71, 87, 0.4)',
+    impostorAvatarBox: {
+        width: 36,
+        height: 36,
+        borderRadius: 10,
+        backgroundColor: 'rgba(255, 42, 85, 0.3)',
         justifyContent: 'center',
         alignItems: 'center',
     },
-    impostorAvatarText: {
-        fontSize: 20,
-    },
     impostorName: {
-        fontSize: 20,
-        fontWeight: '800',
-        color: '#FFFFFF',
+        fontSize: 18,
+        fontWeight: '900',
+        color: colors.textPrimary,
     },
     voteList: {
-        gap: 8,
+        gap: 6,
         width: '100%',
     },
     voteItem: {
@@ -402,59 +407,50 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingVertical: 6,
         borderBottomWidth: 1,
-        borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+        borderBottomColor: colors.borderSubtle,
     },
     voterName: {
-        fontSize: 14,
-        color: 'rgba(255, 255, 255, 0.8)',
-        fontWeight: '600',
-    },
-    voteArrow: {
-        fontSize: 12,
-        color: 'rgba(255, 255, 255, 0.4)',
-    },
-    targetName: {
-        fontSize: 14,
-        color: '#FF6B81',
+        fontSize: 13,
+        color: colors.textSecondary,
         fontWeight: '700',
     },
+    targetName: {
+        fontSize: 13,
+        color: colors.impostorLight,
+        fontWeight: '800',
+    },
     actions: {
-        marginTop: 10,
-        gap: 12,
+        marginTop: 6,
+        gap: 10,
     },
     replayButton: {
-        borderRadius: 22,
+        borderRadius: 16,
         overflow: 'hidden',
-        shadowColor: '#6C5CE7',
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.5,
-        shadowRadius: 14,
-        elevation: 8,
     },
     replayGradient: {
-        paddingVertical: 18,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    replayButtonText: {
-        fontSize: 18,
-        fontWeight: '800',
-        color: '#FFFFFF',
-    },
-    newGameButton: {
-        borderRadius: 20,
-        overflow: 'hidden',
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.15)',
-    },
-    newGameGradient: {
+        flexDirection: 'row',
         paddingVertical: 16,
         alignItems: 'center',
         justifyContent: 'center',
     },
-    newGameButtonText: {
+    replayButtonText: {
         fontSize: 16,
-        fontWeight: '700',
+        fontWeight: '900',
         color: '#FFFFFF',
+    },
+    newGameButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: colors.bgGlassHover,
+        borderRadius: 16,
+        paddingVertical: 14,
+        borderWidth: 1,
+        borderColor: colors.borderLight,
+    },
+    newGameButtonText: {
+        fontSize: 14,
+        fontWeight: '800',
+        color: colors.textSecondary,
     },
 });

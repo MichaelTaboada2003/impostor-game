@@ -28,6 +28,7 @@ interface GameContextType {
     deleteCustomTheme: (themeId: string) => Promise<void>;
     saveCurrentGroup: (name: string) => Promise<void>;
     loadGroup: (group: PlayerGroup) => void;
+    updateGroup: (group: PlayerGroup) => Promise<void>;
     deleteGroup: (groupId: string) => Promise<void>;
     submitVote: (voterId: number, targetId: number) => void;
     calculateVotingResults: () => { ejectedPlayer: Player | null; winner: 'crewmates' | 'impostors' };
@@ -276,6 +277,11 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setPlayerNamesList(group.players);
     };
 
+    const updateGroup = async (group: PlayerGroup) => {
+        const updated = await storageService.updateGroup(group);
+        setSavedGroups(updated);
+    };
+
     const deleteGroup = async (groupId: string) => {
         const updated = await storageService.deleteGroup(groupId);
         setSavedGroups(updated);
@@ -393,6 +399,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 deleteCustomTheme,
                 saveCurrentGroup,
                 loadGroup,
+                updateGroup,
                 deleteGroup,
                 submitVote,
                 calculateVotingResults,

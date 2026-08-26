@@ -9,17 +9,30 @@ import {
     Animated,
     KeyboardAvoidingView,
     Platform,
+    Vibration,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useGame } from '../context/GameContext';
 import { SavedGroupsModal } from '../components/SavedGroupsModal';
-import { colors } from '../styles/colors';
+import { colors, gradients } from '../styles/colors';
 import { PlayerGroup } from '../types/game';
 
 interface PlayerNamesScreenProps {
     onBack: () => void;
     onNext: () => void;
 }
+
+const PLAYER_GRADIENTS = [
+    ['#7952FF', '#9D7DFF'],
+    ['#00B8D4', '#00F0FF'],
+    ['#FF2A55', '#FF6B8B'],
+    ['#00B894', '#00F59B'],
+    ['#FF9F1C', '#FFD166'],
+    ['#E040FB', '#EA80FC'],
+    ['#3D5AFE', '#8C9EFF'],
+    ['#00E676', '#B9F6CA'],
+];
 
 export const PlayerNamesScreen: React.FC<PlayerNamesScreenProps> = ({
     onBack,
@@ -32,6 +45,7 @@ export const PlayerNamesScreen: React.FC<PlayerNamesScreenProps> = ({
         savedGroups,
         saveCurrentGroup,
         loadGroup,
+        updateGroup,
         deleteGroup,
     } = useGame();
 
@@ -39,7 +53,7 @@ export const PlayerNamesScreen: React.FC<PlayerNamesScreenProps> = ({
     const { numberOfPlayers } = gameState.config;
 
     const fadeAnim = useRef(new Animated.Value(0)).current;
-    const headerAnim = useRef(new Animated.Value(-20)).current;
+    const headerAnim = useRef(new Animated.Value(-15)).current;
     const inputRefs = useRef<(TextInput | null)[]>([]);
 
     useEffect(() => {
@@ -64,14 +78,11 @@ export const PlayerNamesScreen: React.FC<PlayerNamesScreenProps> = ({
         .every(name => name && name.trim().length > 0);
 
     return (
-        <LinearGradient
-            colors={['#0a0a1a', '#141432', '#0a0a1a']}
-            style={styles.container}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-        >
-            <View style={styles.bgCircle1} />
-            <View style={styles.bgCircle2} />
+        <View style={styles.container}>
+            <LinearGradient
+                colors={gradients.appBackground}
+                style={StyleSheet.absoluteFillObject}
+            />
 
             <KeyboardAvoidingView
                 style={styles.keyboardView}
@@ -85,35 +96,28 @@ export const PlayerNamesScreen: React.FC<PlayerNamesScreenProps> = ({
                     ]}
                 >
                     <View style={styles.topNavRow}>
-                        <TouchableOpacity style={styles.backButton} onPress={onBack}>
-                            <View style={styles.backButtonInner}>
-                                <Text style={styles.backButtonIcon}>←</Text>
-                                <Text style={styles.backButtonText}>Atrás</Text>
-                            </View>
+                        <TouchableOpacity style={styles.backButton} onPress={onBack} activeOpacity={0.7}>
+                            <Ionicons name="arrow-back" size={20} color={colors.textSecondary} />
+                            <Text style={styles.backButtonText}>Atrás</Text>
                         </TouchableOpacity>
 
-                        {/* Saved Groups Trigger */}
                         <TouchableOpacity
                             style={styles.groupsTriggerBtn}
-                            onPress={() => setShowGroupsModal(true)}
-                            activeOpacity={0.8}
+                            onPress={() => {
+                                Vibration.vibrate(15);
+                                setShowGroupsModal(true);
+                            }}
+                            activeOpacity={0.75}
                         >
-                            <LinearGradient
-                                colors={['rgba(108, 92, 231, 0.4)', 'rgba(108, 92, 231, 0.15)']}
-                                style={styles.groupsTriggerGradient}
-                            >
-                                <Text style={styles.groupsTriggerText}>👥 Grupos ({savedGroups.length})</Text>
-                            </LinearGradient>
+                            <Ionicons name="people-outline" size={16} color={colors.primaryLight} style={{ marginRight: 4 }} />
+                            <Text style={styles.groupsTriggerText}>Plantillas ({savedGroups.length})</Text>
                         </TouchableOpacity>
                     </View>
 
                     <View style={styles.titleSection}>
-                        <View style={styles.titleRow}>
-                            <Text style={styles.titleEmoji}>✏️</Text>
-                            <Text style={styles.title}>Nombres</Text>
-                        </View>
+                        <Text style={styles.title}>Nombres de Jugadores</Text>
                         <Text style={styles.subtitle}>
-                            Ingresa el nombre de cada participante
+                            Identifica a cada participante para la ronda de roles
                         </Text>
                     </View>
                 </Animated.View>
@@ -125,84 +129,84 @@ export const PlayerNamesScreen: React.FC<PlayerNamesScreenProps> = ({
                     showsVerticalScrollIndicator={false}
                     keyboardShouldPersistTaps="handled"
                 >
-                    {Array.from({ length: numberOfPlayers }, (_, index) => (
-                        <View key={index} style={styles.inputContainer}>
-                            <View style={styles.inputWrapper}>
+                    {Array.from({ length: numberOfPlayers }, (_, index) => {
+                        const avatarGradient = PLAYER_GRADIENTS[index % PLAYER_GRADIENTS.length];
+                        const hasName = playerNames[index]?.trim().length > 0;
+
+                        return (
+                            <View key={index} style={styles.inputCard}>
                                 <LinearGradient
-                                    colors={['#6C5CE7', '#5B4BD5']}
-                                    style={styles.playerNumberBadge}
+                                    colors={avatarGradient as [string, string]}
+                                    style={styles.avatarPill}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 1 }}
                                 >
-                                    <Text style={styles.playerNumberText}>{index + 1}</Text>
+                                    <Text style={styles.avatarNumberText}>{index + 1}</Text>
                                 </LinearGradient>
 
-                                <View style={styles.inputFieldContainer}>
+                                <View style={styles.inputWrapper}>
                                     <TextInput
                                         ref={ref => { inputRefs.current[index] = ref; }}
-                                        style={styles.input}
+                                        style={styles.textInput}
                                         value={playerNames[index]}
                                         onChangeText={(text) => handleNameChange(index, text)}
-                                        placeholder={`Nombre del jugador ${index + 1}`}
-                                        placeholderTextColor="rgba(255, 255, 255, 0.35)"
+                                        placeholder={`Jugador ${index + 1}`}
+                                        placeholderTextColor={colors.textMuted}
                                         returnKeyType={index < numberOfPlayers - 1 ? 'next' : 'done'}
                                         onSubmitEditing={() => focusNextInput(index)}
-                                        maxLength={22}
+                                        maxLength={20}
                                         autoCapitalize="words"
                                     />
                                 </View>
 
-                                {playerNames[index]?.trim().length > 0 && (
-                                    <View style={styles.checkMark}>
-                                        <Text style={styles.checkMarkText}>✓</Text>
+                                {hasName && (
+                                    <View style={styles.checkCircle}>
+                                        <Ionicons name="checkmark" size={14} color="#07080C" />
                                     </View>
                                 )}
                             </View>
-                        </View>
-                    ))}
+                        );
+                    })}
                 </ScrollView>
 
-                {/* Footer */}
-                <Animated.View style={[styles.footer, { opacity: fadeAnim }]}>
-                    <LinearGradient
-                        colors={['rgba(10, 10, 26, 0)', 'rgba(10, 10, 26, 0.95)', 'rgba(10, 10, 26, 1)']}
-                        style={styles.footerGradient}
+                {/* Fixed Bottom CTA Bar */}
+                <View style={styles.bottomBar}>
+                    <TouchableOpacity
+                        style={[
+                            styles.continueButton,
+                            !allNamesValid && styles.continueButtonDisabled,
+                        ]}
+                        onPress={onNext}
+                        disabled={!allNamesValid}
+                        activeOpacity={0.85}
                     >
-                        <TouchableOpacity
-                            style={[
-                                styles.continueButton,
-                                !allNamesValid && styles.continueButtonDisabled,
-                            ]}
-                            onPress={onNext}
-                            disabled={!allNamesValid}
-                            activeOpacity={0.85}
+                        <LinearGradient
+                            colors={
+                                allNamesValid
+                                    ? ['#7952FF', '#9D7DFF']
+                                    : ['#232635', '#161822']
+                            }
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 0 }}
+                            style={styles.continueGradient}
                         >
-                            <LinearGradient
-                                colors={
-                                    allNamesValid
-                                        ? ['#6C5CE7', '#A29BFE', '#6C5CE7']
-                                        : ['#3D3D5C', '#2D2D44']
-                                }
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 0 }}
-                                style={styles.continueButtonGradient}
+                            <Text
+                                style={[
+                                    styles.continueText,
+                                    !allNamesValid && styles.continueTextDisabled,
+                                ]}
                             >
-                                <Text
-                                    style={[
-                                        styles.continueButtonText,
-                                        !allNamesValid && styles.continueButtonTextDisabled,
-                                    ]}
-                                >
-                                    Elegir Temática
-                                </Text>
-                                <View style={[
-                                    styles.arrowContainer,
-                                    !allNamesValid && styles.arrowContainerDisabled,
-                                ]}>
-                                    <Text style={styles.continueButtonIcon}>→</Text>
-                                </View>
-                            </LinearGradient>
-                        </TouchableOpacity>
-                    </LinearGradient>
-                </Animated.View>
+                                Elegir Temática
+                            </Text>
+                            <Ionicons
+                                name="arrow-forward"
+                                size={18}
+                                color={allNamesValid ? '#FFFFFF' : colors.textDisabled}
+                                style={{ marginLeft: 8 }}
+                            />
+                        </LinearGradient>
+                    </TouchableOpacity>
+                </View>
             </KeyboardAvoidingView>
 
             {/* Saved Groups Modal */}
@@ -213,210 +217,157 @@ export const PlayerNamesScreen: React.FC<PlayerNamesScreenProps> = ({
                 onClose={() => setShowGroupsModal(false)}
                 onSelectGroup={(g: PlayerGroup) => loadGroup(g)}
                 onSaveGroup={(name: string) => saveCurrentGroup(name)}
+                onUpdateGroup={(g: PlayerGroup) => updateGroup(g)}
                 onDeleteGroup={(id: string) => deleteGroup(id)}
             />
-        </LinearGradient>
+        </View>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-    },
-    bgCircle1: {
-        position: 'absolute',
-        width: 200,
-        height: 200,
-        borderRadius: 100,
-        backgroundColor: '#6C5CE7',
-        top: -50,
-        right: -50,
-        opacity: 0.08,
-    },
-    bgCircle2: {
-        position: 'absolute',
-        width: 150,
-        height: 150,
-        borderRadius: 75,
-        backgroundColor: '#00CEC9',
-        bottom: 150,
-        left: -50,
-        opacity: 0.08,
+        backgroundColor: colors.bgDeep,
     },
     keyboardView: {
         flex: 1,
     },
     header: {
         paddingTop: 54,
-        paddingHorizontal: 22,
-        paddingBottom: 16,
+        paddingHorizontal: 20,
+        paddingBottom: 12,
     },
     topNavRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 16,
+        marginBottom: 14,
     },
     backButton: {
-        paddingVertical: 6,
-    },
-    backButtonInner: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 6,
-    },
-    backButtonIcon: {
-        fontSize: 18,
-        color: 'rgba(255, 255, 255, 0.7)',
+        paddingVertical: 4,
     },
     backButtonText: {
-        fontSize: 15,
-        color: 'rgba(255, 255, 255, 0.7)',
+        fontSize: 14,
+        fontWeight: '700',
+        color: colors.textSecondary,
     },
     groupsTriggerBtn: {
-        borderRadius: 14,
-        overflow: 'hidden',
-        borderWidth: 1,
-        borderColor: 'rgba(108, 92, 231, 0.4)',
-    },
-    groupsTriggerGradient: {
-        paddingHorizontal: 14,
-        paddingVertical: 8,
-    },
-    groupsTriggerText: {
-        color: '#A29BFE',
-        fontSize: 13,
-        fontWeight: '700',
-    },
-    titleSection: {
-        gap: 4,
-    },
-    titleRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 10,
+        backgroundColor: colors.bgElevated,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: colors.borderLight,
     },
-    titleEmoji: {
-        fontSize: 28,
+    groupsTriggerText: {
+        color: colors.primaryLight,
+        fontSize: 12,
+        fontWeight: '800',
+    },
+    titleSection: {
+        gap: 2,
     },
     title: {
-        fontSize: 30,
+        fontSize: 24,
         fontWeight: '900',
-        color: '#FFFFFF',
+        color: colors.textPrimary,
+        letterSpacing: 0.3,
     },
     subtitle: {
-        fontSize: 14,
-        color: 'rgba(255, 255, 255, 0.5)',
+        fontSize: 12,
+        color: colors.textMuted,
     },
     scrollView: {
         flex: 1,
     },
     scrollContent: {
-        paddingHorizontal: 22,
-        paddingBottom: 140,
-        gap: 10,
+        paddingHorizontal: 20,
+        paddingBottom: 110,
+        gap: 8,
     },
-    inputContainer: {
-        marginBottom: 0,
-    },
-    inputWrapper: {
+    inputCard: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-        borderRadius: 18,
+        backgroundColor: colors.bgCard,
+        borderRadius: 16,
+        padding: 6,
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.08)',
-        overflow: 'hidden',
+        borderColor: colors.borderSubtle,
+        gap: 10,
     },
-    playerNumberBadge: {
-        width: 48,
-        height: 56,
+    avatarPill: {
+        width: 42,
+        height: 42,
+        borderRadius: 12,
         justifyContent: 'center',
         alignItems: 'center',
     },
-    playerNumberText: {
-        fontSize: 18,
-        fontWeight: '800',
+    avatarNumberText: {
+        fontSize: 16,
+        fontWeight: '900',
         color: '#FFFFFF',
     },
-    inputFieldContainer: {
+    inputWrapper: {
         flex: 1,
     },
-    input: {
-        height: 56,
-        paddingHorizontal: 14,
-        fontSize: 16,
-        color: '#FFFFFF',
-        fontWeight: '600',
+    textInput: {
+        height: 46,
+        color: colors.textPrimary,
+        fontSize: 15,
+        fontWeight: '700',
     },
-    checkMark: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
-        backgroundColor: '#00B894',
+    checkCircle: {
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        backgroundColor: colors.success,
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: 12,
+        marginRight: 8,
     },
-    checkMarkText: {
-        fontSize: 16,
-        color: '#FFFFFF',
-        fontWeight: '800',
-    },
-    footer: {
+    bottomBar: {
         position: 'absolute',
         bottom: 0,
         left: 0,
         right: 0,
-    },
-    footerGradient: {
-        paddingHorizontal: 22,
-        paddingTop: 30,
+        paddingHorizontal: 20,
+        paddingTop: 14,
         paddingBottom: 36,
+        backgroundColor: 'rgba(7, 8, 12, 0.95)',
+        borderTopWidth: 1,
+        borderTopColor: colors.borderSubtle,
     },
     continueButton: {
-        borderRadius: 22,
+        borderRadius: 16,
         overflow: 'hidden',
-        shadowColor: '#6C5CE7',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.5,
-        shadowRadius: 18,
-        elevation: 10,
+        shadowColor: colors.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.4,
+        shadowRadius: 10,
+        elevation: 6,
     },
     continueButtonDisabled: {
         shadowOpacity: 0,
         elevation: 0,
     },
-    continueButtonGradient: {
+    continueGradient: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: 18,
-        paddingHorizontal: 28,
-        gap: 14,
+        paddingVertical: 16,
     },
-    continueButtonText: {
-        fontSize: 18,
-        fontWeight: '800',
-        color: '#FFFFFF',
-    },
-    continueButtonTextDisabled: {
-        color: 'rgba(255, 255, 255, 0.4)',
-    },
-    arrowContainer: {
-        width: 30,
-        height: 30,
-        borderRadius: 15,
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    arrowContainerDisabled: {
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    },
-    continueButtonIcon: {
+    continueText: {
         fontSize: 16,
+        fontWeight: '900',
         color: '#FFFFFF',
-        fontWeight: '700',
+        letterSpacing: 0.5,
+    },
+    continueTextDisabled: {
+        color: colors.textDisabled,
     },
 });

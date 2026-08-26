@@ -9,8 +9,9 @@ import {
     Vibration,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import { useGame } from '../context/GameContext';
-import { colors } from '../styles/colors';
+import { colors, gradients } from '../styles/colors';
 
 const { width } = Dimensions.get('window');
 
@@ -44,16 +45,12 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
     const progress = ((gameState.currentPlayerIndex + 1) / gameState.players.length) * 100;
 
     useEffect(() => {
-        Animated.timing(fadeAnim, {
-            toValue: 1,
-            duration: 500,
-            useNativeDriver: true,
-        }).start();
+        Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
 
         Animated.loop(
             Animated.sequence([
-                Animated.timing(pulseAnim, { toValue: 1.02, duration: 1500, useNativeDriver: true }),
-                Animated.timing(pulseAnim, { toValue: 1, duration: 1500, useNativeDriver: true }),
+                Animated.timing(pulseAnim, { toValue: 1.02, duration: 1200, useNativeDriver: true }),
+                Animated.timing(pulseAnim, { toValue: 1, duration: 1200, useNativeDriver: true }),
             ])
         ).start();
     }, []);
@@ -70,10 +67,11 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
         if (cardState !== 'waiting') return;
 
         setCardState('revealing');
+        Vibration.vibrate(20);
 
         Animated.timing(holdProgress, {
             toValue: 1,
-            duration: 1200,
+            duration: 1100,
             useNativeDriver: false,
         }).start(({ finished }) => {
             if (finished) {
@@ -99,26 +97,25 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
         setCardState('revealed');
 
         Animated.parallel([
-            Animated.timing(cardOpacity, { toValue: 0, duration: 200, useNativeDriver: true }),
-            Animated.timing(cardScale, { toValue: 0.92, duration: 200, useNativeDriver: true }),
+            Animated.timing(cardOpacity, { toValue: 0, duration: 180, useNativeDriver: true }),
+            Animated.timing(cardScale, { toValue: 0.94, duration: 180, useNativeDriver: true }),
         ]).start(() => {
             Animated.parallel([
-                Animated.timing(revealOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
-                Animated.spring(cardScale, { toValue: 1, friction: 6, tension: 50, useNativeDriver: true }),
+                Animated.timing(revealOpacity, { toValue: 1, duration: 250, useNativeDriver: true }),
+                Animated.spring(cardScale, { toValue: 1, friction: 6, tension: 60, useNativeDriver: true }),
             ]).start();
         });
 
-        // Haptic feedback
         if (currentPlayer?.isImpostor && !isUndercoverMode) {
-            Vibration.vibrate([0, 100, 50, 100, 50, 100, 50, 200]);
+            Vibration.vibrate([0, 80, 40, 80, 40, 150]);
             Animated.sequence([
-                Animated.timing(shakeAnim, { toValue: 12, duration: 50, useNativeDriver: true }),
-                Animated.timing(shakeAnim, { toValue: -12, duration: 50, useNativeDriver: true }),
-                Animated.timing(shakeAnim, { toValue: 10, duration: 50, useNativeDriver: true }),
-                Animated.timing(shakeAnim, { toValue: 0, duration: 50, useNativeDriver: true }),
+                Animated.timing(shakeAnim, { toValue: 8, duration: 40, useNativeDriver: true }),
+                Animated.timing(shakeAnim, { toValue: -8, duration: 40, useNativeDriver: true }),
+                Animated.timing(shakeAnim, { toValue: 6, duration: 40, useNativeDriver: true }),
+                Animated.timing(shakeAnim, { toValue: 0, duration: 40, useNativeDriver: true }),
             ]).start();
         } else {
-            Vibration.vibrate(80);
+            Vibration.vibrate(60);
         }
 
         if (currentPlayer) {
@@ -127,6 +124,7 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
     };
 
     const handleNext = () => {
+        Vibration.vibrate(20);
         const isLastPlayer = gameState.currentPlayerIndex === gameState.players.length - 1;
         if (isLastPlayer) {
             onComplete();
@@ -142,30 +140,21 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
 
     if (!currentPlayer) return null;
 
-    // En Undercover todos ven color de tripulante para no dar pistas al que mira sobre el hombro
     const isClassicImpostor = currentPlayer.isImpostor && !isUndercoverMode;
 
     return (
-        <LinearGradient
-            colors={['#0a0a1a', '#141432', '#0a0a1a']}
-            style={styles.container}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-        >
-            <View style={styles.bgCircle1} />
-            <View style={styles.bgCircle2} />
+        <View style={styles.container}>
+            <LinearGradient
+                colors={gradients.appBackground}
+                style={StyleSheet.absoluteFillObject}
+            />
 
             <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
-                {/* Header */}
+                {/* Header Progress */}
                 <View style={styles.header}>
                     <View style={styles.progressSection}>
                         <View style={styles.progressBar}>
-                            <LinearGradient
-                                colors={['#6C5CE7', '#00CEC9']}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 0 }}
-                                style={[styles.progressFill, { width: `${progress}%` }]}
-                            />
+                            <View style={[styles.progressFill, { width: `${progress}%` }]} />
                         </View>
                         <Text style={styles.progressText}>
                             Jugador {gameState.currentPlayerIndex + 1} de {gameState.players.length}
@@ -178,27 +167,22 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
                     </View>
                 </View>
 
-                {/* Player Section */}
+                {/* Player Header Avatar */}
                 <View style={styles.playerSection}>
-                    <View style={styles.playerAvatarContainer}>
-                        <LinearGradient
-                            colors={['#6C5CE7', '#A29BFE']}
-                            style={styles.playerAvatar}
-                        >
-                            <Text style={styles.playerInitial}>
-                                {currentPlayer.name.charAt(0).toUpperCase()}
-                            </Text>
-                        </LinearGradient>
+                    <View style={styles.playerAvatar}>
+                        <Text style={styles.playerInitial}>
+                            {currentPlayer.name.charAt(0).toUpperCase()}
+                        </Text>
                     </View>
                     <Text style={styles.playerName}>{currentPlayer.name}</Text>
                     <Text style={styles.playerInstruction}>
-                        {cardState === 'waiting' && '👆 Pasa el teléfono y mantén presionado'}
-                        {cardState === 'revealing' && '⏳ Sigue manteniendo presionado...'}
-                        {cardState === 'revealed' && '🤫 ¡Memoriza tu palabra en secreto!'}
+                        {cardState === 'waiting' && 'Pasa el dispositivo y mantén presionado'}
+                        {cardState === 'revealing' && 'Mantén presionado para revelar...'}
+                        {cardState === 'revealed' && 'Memoriza tu rol y palabra en secreto'}
                     </Text>
                 </View>
 
-                {/* Card */}
+                {/* Card Container */}
                 <View style={styles.cardContainer}>
                     {/* Hidden Card Front */}
                     <Animated.View
@@ -218,29 +202,28 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
                             disabled={cardState === 'revealed'}
                         >
                             <LinearGradient
-                                colors={['#252545', '#16162e', '#121226']}
+                                colors={['#171A27', '#10121B']}
                                 style={styles.cardGradient}
                                 start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 1 }}
+                                end={{ x: 0, y: 1 }}
                             >
-                                <View style={styles.cardPattern}>
-                                    <Text style={styles.cardQuestionMark}>?</Text>
+                                <View style={styles.scanIconCircle}>
+                                    <MaterialCommunityIcons name="fingerprint" size={60} color={colors.primaryLight} />
                                 </View>
 
+                                <Text style={styles.cardHiddenTitle}>IDENTIDAD PRIVADA</Text>
                                 <Text style={styles.cardHiddenText}>
-                                    {cardState === 'waiting' ? 'Mantén presionado para revelar' : 'Revelando rol...'}
+                                    {cardState === 'waiting' ? 'Mantén presionado para ver tu rol' : 'Verificando huella...'}
                                 </Text>
 
                                 <View style={styles.holdProgressContainer}>
                                     <View style={styles.holdProgressBg}>
-                                        <Animated.View
-                                            style={[styles.holdProgressBar, { width: progressWidth }]}
-                                        >
+                                        <Animated.View style={[styles.holdProgressBar, { width: progressWidth }]}>
                                             <LinearGradient
-                                                colors={['#6C5CE7', '#FD79A8', '#00CEC9']}
+                                                colors={['#7952FF', '#00F0FF']}
                                                 start={{ x: 0, y: 0 }}
                                                 end={{ x: 1, y: 0 }}
-                                                style={styles.holdProgressGradient}
+                                                style={StyleSheet.absoluteFillObject}
                                             />
                                         </Animated.View>
                                     </View>
@@ -263,213 +246,200 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
                         <LinearGradient
                             colors={
                                 isClassicImpostor
-                                    ? ['#FF4757', '#C0392B', '#7A1818']
-                                    : ['#2980B9', '#3498DB', '#1A365D']
+                                    ? ['#261016', '#14080B']
+                                    : ['#0E1826', '#090F1A']
                             }
-                            style={styles.cardGradient}
+                            style={[
+                                styles.cardGradient,
+                                { borderColor: isClassicImpostor ? colors.impostor : colors.cyan },
+                            ]}
                             start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
+                            end={{ x: 0, y: 1 }}
                         >
                             <View style={styles.roleContent}>
-                                <View style={styles.roleIconContainer}>
-                                    <Text style={styles.roleEmoji}>
-                                        {isClassicImpostor ? '🔪' : '👤'}
+                                <View
+                                    style={[
+                                        styles.roleIconCircle,
+                                        { backgroundColor: isClassicImpostor ? 'rgba(255, 42, 85, 0.2)' : 'rgba(0, 240, 255, 0.2)' },
+                                    ]}
+                                >
+                                    {isClassicImpostor ? (
+                                        <MaterialCommunityIcons name="incognito" size={36} color={colors.impostor} />
+                                    ) : (
+                                        <Ionicons name="shield-checkmark" size={36} color={colors.cyan} />
+                                    )}
+                                </View>
+
+                                <Text
+                                    style={[
+                                        styles.roleTitle,
+                                        { color: isClassicImpostor ? colors.impostor : colors.cyan },
+                                    ]}
+                                >
+                                    {isClassicImpostor ? 'IMPOSTOR' : 'TRIPULANTE'}
+                                </Text>
+
+                                <View style={styles.wordDisplayBox}>
+                                    <Text style={styles.wordDisplayLabel}>
+                                        {isClassicImpostor ? 'TU SITUACIÓN' : 'TU PALABRA SECRETA'}
+                                    </Text>
+                                    <Text style={styles.wordDisplayText}>
+                                        {currentPlayer.word}
                                     </Text>
                                 </View>
 
-                                <Text style={styles.roleTitle}>
-                                    {isClassicImpostor ? '¡IMPOSTOR!' : 'TRIPULANTE'}
-                                </Text>
-
-                                <View style={styles.infoWrapper}>
-                                    <View style={styles.wordContainer}>
-                                        <Text style={styles.wordLabel}>
-                                            {isClassicImpostor ? 'Tu rol es:' : 'Tu palabra secreta es:'}
-                                        </Text>
-                                        <Text style={styles.wordText}>
-                                            {currentPlayer.word}
+                                {isClassicImpostor ? (
+                                    <View style={styles.impostorWarningBox}>
+                                        <Text style={styles.impostorWarningTitle}>NO CONOCES LA PALABRA</Text>
+                                        {hasHints && currentPlayer.hint ? (
+                                            <View style={styles.hintLine}>
+                                                <Text style={styles.hintPrefix}>Pista de auxilio: </Text>
+                                                <Text style={styles.hintHighlight}>{currentPlayer.hint}</Text>
+                                            </View>
+                                        ) : null}
+                                    </View>
+                                ) : (
+                                    <View style={styles.crewmateRuleBox}>
+                                        <Text style={styles.crewmateRuleText}>
+                                            {isUndercoverMode
+                                                ? 'Da pistas ingeniosas sin hacerte notar'
+                                                : 'Da pistas sin regalar la palabra'}
                                         </Text>
                                     </View>
-
-                                    {/* Warnings and Hints */}
-                                    {isClassicImpostor ? (
-                                        <View style={styles.impostorWarningContainer}>
-                                            <Text style={styles.impostorWarning}>
-                                                🔪 NO CONOCES LA PALABRA
-                                            </Text>
-                                            {hasHints && currentPlayer.hint ? (
-                                                <View style={styles.hintSectionInside}>
-                                                    <View style={styles.hintDivider} />
-                                                    <Text style={styles.hintInfoLabel}>💡 PISTA PARA DISIMULAR:</Text>
-                                                    <Text style={styles.hintInfoText}>{currentPlayer.hint}</Text>
-                                                </View>
-                                            ) : null}
-                                        </View>
-                                    ) : (
-                                        <View style={styles.hintStatusContainer}>
-                                            <Text style={styles.roleStatusText}>
-                                                {isUndercoverMode
-                                                    ? '🤫 Da pistas inteligentes sin delatarte'
-                                                    : '👤 Da pistas y descubre al impostor'}
-                                            </Text>
-                                        </View>
-                                    )}
-                                </View>
+                                )}
                             </View>
                         </LinearGradient>
                     </Animated.View>
                 </View>
 
-                {/* Bottom Hold Action Button */}
-                {cardState !== 'revealed' && (
-                    <Animated.View style={styles.actionButtonContainer}>
+                {/* Bottom Trigger Buttons */}
+                <View style={styles.bottomBar}>
+                    {cardState !== 'revealed' ? (
                         <TouchableOpacity
-                            style={styles.actionButton}
+                            style={styles.holdTriggerBtn}
                             onPressIn={startHold}
                             onPressOut={cancelHold}
                             activeOpacity={0.9}
                         >
                             <LinearGradient
-                                colors={['#6C5CE7', '#8E44AD']}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 0 }}
-                                style={styles.actionButtonGradient}
+                                colors={['#7952FF', '#5E38E6']}
+                                style={styles.holdTriggerGradient}
                             >
-                                <Text style={styles.actionButtonText}>
-                                    {cardState === 'waiting' ? '🔽 MANTÉN PARA REVELAR' : '⏳ REVELANDO...'}
+                                <MaterialCommunityIcons name="gesture-tap-hold" size={20} color="#FFFFFF" style={{ marginRight: 8 }} />
+                                <Text style={styles.holdTriggerText}>
+                                    {cardState === 'waiting' ? 'MANTÉN PRESIONADO' : 'REVELANDO...'}
                                 </Text>
                             </LinearGradient>
                         </TouchableOpacity>
-                    </Animated.View>
-                )}
-
-                {/* Next Player Action Button */}
-                {cardState === 'revealed' && (
-                    <Animated.View style={styles.nextButtonContainer}>
+                    ) : (
                         <TouchableOpacity
-                            style={styles.nextButton}
+                            style={styles.nextPlayerBtn}
                             onPress={handleNext}
                             activeOpacity={0.85}
                         >
                             <LinearGradient
-                                colors={['#6C5CE7', '#A29BFE', '#6C5CE7']}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 0 }}
-                                style={styles.nextButtonGradient}
+                                colors={['#7952FF', '#9D7DFF']}
+                                style={styles.nextPlayerGradient}
                             >
-                                <Text style={styles.nextButtonText}>
+                                <Text style={styles.nextPlayerText}>
                                     {gameState.currentPlayerIndex === gameState.players.length - 1
-                                        ? '🎮 ¡Comenzar Debate y Juego!'
-                                        : '→ Siguiente Jugador'}
+                                        ? '¡Comenzar Debate!'
+                                        : 'Siguiente Jugador'}
                                 </Text>
+                                <Ionicons name="arrow-forward" size={18} color="#FFFFFF" style={{ marginLeft: 8 }} />
                             </LinearGradient>
                         </TouchableOpacity>
-                    </Animated.View>
-                )}
+                    )}
+                </View>
             </Animated.View>
-        </LinearGradient>
+        </View>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-    },
-    bgCircle1: {
-        position: 'absolute',
-        width: 300,
-        height: 300,
-        borderRadius: 150,
-        backgroundColor: '#6C5CE7',
-        top: -100,
-        right: -100,
-        opacity: 0.08,
-    },
-    bgCircle2: {
-        position: 'absolute',
-        width: 200,
-        height: 200,
-        borderRadius: 100,
-        backgroundColor: '#FF4757',
-        bottom: 50,
-        left: -80,
-        opacity: 0.08,
+        backgroundColor: colors.bgDeep,
     },
     content: {
         flex: 1,
-        padding: 22,
+        paddingHorizontal: 20,
         paddingTop: 54,
     },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'flex-start',
+        alignItems: 'center',
         marginBottom: 16,
     },
     progressSection: {
         flex: 1,
-        marginRight: 16,
+        marginRight: 14,
     },
     progressBar: {
-        height: 6,
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-        borderRadius: 3,
+        height: 4,
+        backgroundColor: colors.bgElevated,
+        borderRadius: 2,
         overflow: 'hidden',
         marginBottom: 6,
     },
     progressFill: {
         height: '100%',
-        borderRadius: 3,
+        backgroundColor: colors.cyan,
     },
     progressText: {
-        fontSize: 13,
-        color: 'rgba(255, 255, 255, 0.5)',
+        fontSize: 12,
+        color: colors.textMuted,
+        fontWeight: '600',
     },
     themeTag: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(255, 255, 255, 0.08)',
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 16,
+        backgroundColor: colors.bgCard,
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 12,
         gap: 6,
+        borderWidth: 1,
+        borderColor: colors.borderSubtle,
     },
     themeIcon: {
-        fontSize: 16,
+        fontSize: 14,
     },
     themeName: {
-        fontSize: 13,
-        color: 'rgba(255, 255, 255, 0.8)',
-        fontWeight: '700',
+        fontSize: 12,
+        color: colors.textSecondary,
+        fontWeight: '800',
     },
     playerSection: {
         alignItems: 'center',
-        marginBottom: 20,
-    },
-    playerAvatarContainer: {
-        marginBottom: 10,
+        marginBottom: 16,
     },
     playerAvatar: {
-        width: 60,
-        height: 60,
-        borderRadius: 30,
+        width: 52,
+        height: 52,
+        borderRadius: 16,
+        backgroundColor: colors.bgElevated,
         justifyContent: 'center',
         alignItems: 'center',
+        marginBottom: 8,
+        borderWidth: 1,
+        borderColor: colors.borderLight,
     },
     playerInitial: {
-        fontSize: 26,
+        fontSize: 22,
         fontWeight: '900',
-        color: '#FFFFFF',
+        color: colors.primaryLight,
     },
     playerName: {
-        fontSize: 26,
+        fontSize: 22,
         fontWeight: '900',
-        color: '#FFFFFF',
-        marginBottom: 4,
+        color: colors.textPrimary,
     },
     playerInstruction: {
-        fontSize: 14,
-        color: 'rgba(255, 255, 255, 0.6)',
+        fontSize: 12,
+        color: colors.textMuted,
+        marginTop: 2,
         textAlign: 'center',
     },
     cardContainer: {
@@ -478,207 +448,167 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     card: {
-        width: width - 64,
-        minHeight: 310,
-        borderRadius: 28,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 12 },
-        shadowOpacity: 0.4,
-        shadowRadius: 20,
-        elevation: 16,
+        width: width - 48,
+        minHeight: 290,
+        borderRadius: 24,
+        borderWidth: 1,
+        borderColor: colors.borderLight,
+        overflow: 'hidden',
     },
     cardRevealed: {
         position: 'absolute',
     },
     cardTouchable: {
         flex: 1,
-        borderRadius: 28,
-        overflow: 'hidden',
     },
     cardGradient: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        padding: 22,
-        borderRadius: 28,
+        padding: 24,
+        borderRadius: 24,
     },
-    cardPattern: {
-        marginBottom: 12,
+    scanIconCircle: {
+        width: 84,
+        height: 84,
+        borderRadius: 42,
+        backgroundColor: colors.bgGlassHover,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 16,
+        borderWidth: 1,
+        borderColor: colors.borderLight,
     },
-    cardQuestionMark: {
-        fontSize: 90,
+    cardHiddenTitle: {
+        fontSize: 11,
         fontWeight: '900',
-        color: 'rgba(255, 255, 255, 0.15)',
+        color: colors.textMuted,
+        letterSpacing: 2,
+        marginBottom: 4,
     },
     cardHiddenText: {
-        fontSize: 16,
-        color: 'rgba(255, 255, 255, 0.5)',
+        fontSize: 14,
+        color: colors.textSecondary,
         textAlign: 'center',
-        marginBottom: 26,
+        marginBottom: 20,
         fontWeight: '600',
     },
     holdProgressContainer: {
-        width: '80%',
+        width: '75%',
     },
     holdProgressBg: {
-        height: 8,
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-        borderRadius: 4,
+        height: 6,
+        backgroundColor: colors.bgGlass,
+        borderRadius: 3,
         overflow: 'hidden',
     },
     holdProgressBar: {
         height: '100%',
-        borderRadius: 4,
-        overflow: 'hidden',
-    },
-    holdProgressGradient: {
-        flex: 1,
     },
     roleContent: {
         alignItems: 'center',
         width: '100%',
     },
-    roleIconContainer: {
-        width: 72,
-        height: 72,
-        borderRadius: 36,
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    roleIconCircle: {
+        width: 68,
+        height: 68,
+        borderRadius: 34,
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 10,
-    },
-    roleEmoji: {
-        fontSize: 36,
+        marginBottom: 12,
     },
     roleTitle: {
-        fontSize: 28,
+        fontSize: 24,
         fontWeight: '900',
-        color: '#FFFFFF',
-        marginBottom: 18,
         letterSpacing: 2,
+        marginBottom: 16,
     },
-    infoWrapper: {
+    wordDisplayBox: {
         width: '100%',
-        backgroundColor: 'rgba(0, 0, 0, 0.3)',
-        borderRadius: 22,
-        padding: 4,
-        overflow: 'hidden',
-    },
-    wordContainer: {
+        backgroundColor: colors.bgDeep,
+        borderRadius: 16,
+        padding: 16,
         alignItems: 'center',
-        paddingHorizontal: 16,
-        paddingVertical: 14,
+        borderWidth: 1,
+        borderColor: colors.borderSubtle,
+        marginBottom: 12,
     },
-    wordLabel: {
-        fontSize: 13,
-        color: 'rgba(255, 255, 255, 0.55)',
-        fontWeight: '700',
+    wordDisplayLabel: {
+        fontSize: 10,
+        fontWeight: '900',
+        color: colors.textMuted,
+        letterSpacing: 1.5,
         marginBottom: 6,
-        textTransform: 'uppercase',
-        letterSpacing: 1,
     },
-    wordText: {
+    wordDisplayText: {
         fontSize: 28,
         fontWeight: '900',
-        color: '#FFFFFF',
+        color: colors.textPrimary,
         textAlign: 'center',
     },
-    impostorWarningContainer: {
-        backgroundColor: 'rgba(255, 71, 87, 0.25)',
-        paddingVertical: 12,
-        paddingHorizontal: 16,
-        borderBottomLeftRadius: 18,
-        borderBottomRightRadius: 18,
-        borderTopWidth: 1,
-        borderColor: 'rgba(255, 71, 87, 0.25)',
-    },
-    impostorWarning: {
-        fontSize: 14,
-        color: '#FF6B81',
-        textAlign: 'center',
-        fontWeight: '800',
-        letterSpacing: 0.5,
-    },
-    hintSectionInside: {
-        width: '100%',
+    impostorWarningBox: {
         alignItems: 'center',
+        gap: 4,
     },
-    hintDivider: {
-        width: '40%',
-        height: 1,
-        backgroundColor: 'rgba(255, 255, 255, 0.15)',
-        marginVertical: 8,
-    },
-    hintInfoLabel: {
-        fontSize: 10,
-        color: 'rgba(255, 255, 255, 0.5)',
-        fontWeight: '800',
-        marginBottom: 2,
-    },
-    hintInfoText: {
-        fontSize: 16,
-        color: '#FFFFFF',
-        textAlign: 'center',
-        fontWeight: '700',
-    },
-    hintStatusContainer: {
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-        paddingVertical: 12,
-        paddingHorizontal: 16,
-        borderBottomLeftRadius: 18,
-        borderBottomRightRadius: 18,
-        borderTopWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.1)',
-        alignItems: 'center',
-    },
-    roleStatusText: {
-        fontSize: 13,
-        color: 'rgba(255, 255, 255, 0.7)',
-        fontWeight: '700',
-        textAlign: 'center',
-    },
-    actionButtonContainer: {
-        alignItems: 'center',
-        marginTop: 14,
-    },
-    actionButton: {
-        width: width - 64,
-        borderRadius: 18,
-        overflow: 'hidden',
-    },
-    actionButtonGradient: {
-        paddingVertical: 16,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    actionButtonText: {
-        fontSize: 15,
-        fontWeight: '800',
-        color: '#FFFFFF',
+    impostorWarningTitle: {
+        fontSize: 11,
+        fontWeight: '900',
+        color: colors.impostor,
         letterSpacing: 1,
     },
-    nextButtonContainer: {
-        paddingTop: 14,
+    hintLine: {
+        flexDirection: 'row',
+        alignItems: 'center',
     },
-    nextButton: {
-        borderRadius: 22,
+    hintPrefix: {
+        fontSize: 12,
+        color: colors.textMuted,
+    },
+    hintHighlight: {
+        fontSize: 13,
+        fontWeight: '800',
+        color: colors.warning,
+    },
+    crewmateRuleBox: {
+        alignItems: 'center',
+    },
+    crewmateRuleText: {
+        fontSize: 12,
+        color: colors.textMuted,
+        textAlign: 'center',
+    },
+    bottomBar: {
+        paddingVertical: 18,
+    },
+    holdTriggerBtn: {
+        borderRadius: 16,
         overflow: 'hidden',
-        shadowColor: '#6C5CE7',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.5,
-        shadowRadius: 18,
-        elevation: 10,
     },
-    nextButtonGradient: {
+    holdTriggerGradient: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: 18,
-        paddingHorizontal: 28,
+        paddingVertical: 16,
     },
-    nextButtonText: {
-        fontSize: 17,
-        fontWeight: '800',
+    holdTriggerText: {
+        fontSize: 15,
+        fontWeight: '900',
+        color: '#FFFFFF',
+        letterSpacing: 1,
+    },
+    nextPlayerBtn: {
+        borderRadius: 16,
+        overflow: 'hidden',
+    },
+    nextPlayerGradient: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 16,
+    },
+    nextPlayerText: {
+        fontSize: 16,
+        fontWeight: '900',
         color: '#FFFFFF',
     },
 });

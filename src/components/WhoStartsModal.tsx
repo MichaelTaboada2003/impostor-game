@@ -10,15 +10,15 @@ import {
     Vibration,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { MaterialCommunityIcons, Ionicons, Feather } from '@expo/vector-icons';
 import { Player } from '../types/game';
+import { colors, gradients } from '../styles/colors';
 
 interface WhoStartsModalProps {
     visible: boolean;
     players: Player[];
     onClose: () => void;
 }
-
-const { width } = Dimensions.get('window');
 
 export const WhoStartsModal: React.FC<WhoStartsModalProps> = ({
     visible,
@@ -41,8 +41,8 @@ export const WhoStartsModal: React.FC<WhoStartsModalProps> = ({
         setSelectedPlayer(null);
 
         let counter = 0;
-        const totalSteps = 24 + Math.floor(Math.random() * players.length);
-        let speed = 60;
+        const totalSteps = 22 + Math.floor(Math.random() * players.length);
+        let speed = 50;
 
         const step = () => {
             const currentIdx = counter % players.length;
@@ -51,25 +51,24 @@ export const WhoStartsModal: React.FC<WhoStartsModalProps> = ({
             counter++;
 
             if (counter < totalSteps) {
-                if (counter > totalSteps - 8) {
-                    speed += 45; // Slow down effect
+                if (counter > totalSteps - 7) {
+                    speed += 40;
                 }
                 setTimeout(step, speed);
             } else {
-                // Final selection
                 const finalChosen = players[Math.floor(Math.random() * players.length)];
                 setSelectedPlayer(finalChosen);
                 setIsSpinning(false);
-                Vibration.vibrate([0, 100, 50, 150]);
+                Vibration.vibrate([0, 80, 50, 180]);
 
                 Animated.sequence([
-                    Animated.spring(scaleAnim, { toValue: 1.15, friction: 4, useNativeDriver: true }),
+                    Animated.spring(scaleAnim, { toValue: 1.12, friction: 4, useNativeDriver: true }),
                     Animated.spring(scaleAnim, { toValue: 1, friction: 6, useNativeDriver: true }),
                 ]).start();
 
                 Animated.loop(
                     Animated.sequence([
-                        Animated.timing(pulseAnim, { toValue: 1.05, duration: 600, useNativeDriver: true }),
+                        Animated.timing(pulseAnim, { toValue: 1.04, duration: 600, useNativeDriver: true }),
                         Animated.timing(pulseAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
                     ])
                 ).start();
@@ -91,20 +90,23 @@ export const WhoStartsModal: React.FC<WhoStartsModalProps> = ({
             <View style={styles.modalOverlay}>
                 <View style={styles.modalCard}>
                     <LinearGradient
-                        colors={['#1c1c38', '#101026', '#090918']}
+                        colors={gradients.sheetGlass}
                         style={styles.modalGradient}
                         start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
+                        end={{ x: 0, y: 1 }}
                     >
+                        {/* Header */}
                         <View style={styles.header}>
-                            <Text style={styles.headerEmoji}>🎲</Text>
-                            <Text style={styles.title}>¿Quién Empieza?</Text>
+                            <View style={styles.iconCircle}>
+                                <MaterialCommunityIcons name="dice-multiple-outline" size={28} color={colors.cyan} />
+                            </View>
+                            <Text style={styles.title}>¿Quién Inicia?</Text>
                             <Text style={styles.subtitle}>
-                                Ruleta para definir el primer jugador en dar la pista
+                                Sorteo aleatorio para el primer turno de pistas
                             </Text>
                         </View>
 
-                        {/* Spotlight Box */}
+                        {/* Spotlight Spotlight Box */}
                         <View style={styles.spotlightContainer}>
                             <Animated.View
                                 style={[
@@ -117,31 +119,42 @@ export const WhoStartsModal: React.FC<WhoStartsModalProps> = ({
                                 <LinearGradient
                                     colors={
                                         isSpinning
-                                            ? ['rgba(108, 92, 231, 0.4)', 'rgba(108, 92, 231, 0.1)']
-                                            : ['#6C5CE7', '#FD79A8', '#00CEC9']
+                                            ? ['rgba(121, 82, 255, 0.4)', 'rgba(0, 240, 255, 0.1)']
+                                            : ['#7952FF', '#00F0FF']
                                     }
                                     style={styles.spotlightGradient}
                                     start={{ x: 0, y: 0 }}
                                     end={{ x: 1, y: 1 }}
                                 >
                                     <View style={styles.innerPlayerBadge}>
-                                        <Text style={styles.avatarEmoji}>
-                                            {isSpinning ? '🔄' : '👑'}
-                                        </Text>
-                                        <Text style={styles.playerName}>
+                                        <View style={styles.avatarPill}>
+                                            {isSpinning ? (
+                                                <Feather name="loader" size={24} color={colors.cyan} />
+                                            ) : (
+                                                <MaterialCommunityIcons name="crown" size={28} color={colors.warning} />
+                                            )}
+                                        </View>
+
+                                        <Text style={styles.playerName} numberOfLines={1}>
                                             {selectedPlayer?.name || 'Sorteando...'}
                                         </Text>
+
                                         {!isSpinning && (
-                                            <Text style={styles.winnerLabel}>¡DA LA PRIMERA PISTA!</Text>
+                                            <View style={styles.firstTurnBadge}>
+                                                <Text style={styles.winnerLabel}>DA LA PRIMERA PISTA</Text>
+                                            </View>
                                         )}
                                     </View>
                                 </LinearGradient>
                             </Animated.View>
                         </View>
 
-                        <Text style={styles.directionHint}>
-                            💡 Ronda recomendada: en sentido de las agujas del reloj ↻
-                        </Text>
+                        <View style={styles.hintContainer}>
+                            <Ionicons name="information-circle-outline" size={16} color={colors.textMuted} />
+                            <Text style={styles.directionHint}>
+                                Continuar en sentido horario ↻
+                            </Text>
+                        </View>
 
                         {/* Actions */}
                         <View style={styles.actions}>
@@ -149,24 +162,26 @@ export const WhoStartsModal: React.FC<WhoStartsModalProps> = ({
                                 style={styles.spinAgainBtn}
                                 onPress={spinRoulette}
                                 disabled={isSpinning}
-                                activeOpacity={0.8}
+                                activeOpacity={0.75}
                             >
-                                <Text style={styles.spinAgainText}>🔄 Girar de Nuevo</Text>
+                                <Feather name="refresh-cw" size={16} color={colors.textSecondary} style={{ marginRight: 6 }} />
+                                <Text style={styles.spinAgainText}>Girar</Text>
                             </TouchableOpacity>
 
                             <TouchableOpacity
                                 style={styles.readyBtn}
                                 onPress={onClose}
                                 disabled={isSpinning}
-                                activeOpacity={0.8}
+                                activeOpacity={0.85}
                             >
                                 <LinearGradient
-                                    colors={['#00B894', '#00CEC9']}
+                                    colors={['#00B894', '#00F59B']}
                                     style={styles.readyBtnGradient}
                                     start={{ x: 0, y: 0 }}
                                     end={{ x: 1, y: 0 }}
                                 >
                                     <Text style={styles.readyBtnText}>¡A Jugar!</Text>
+                                    <Ionicons name="arrow-forward" size={18} color="#07080C" style={{ marginLeft: 6 }} />
                                 </LinearGradient>
                             </TouchableOpacity>
                         </View>
@@ -180,86 +195,109 @@ export const WhoStartsModal: React.FC<WhoStartsModalProps> = ({
 const styles = StyleSheet.create({
     modalOverlay: {
         flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.85)',
+        backgroundColor: 'rgba(0, 0, 0, 0.88)',
         justifyContent: 'center',
         alignItems: 'center',
         padding: 24,
     },
     modalCard: {
         width: '100%',
-        maxWidth: 380,
+        maxWidth: 360,
         borderRadius: 28,
         overflow: 'hidden',
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.15)',
+        borderColor: colors.borderLight,
     },
     modalGradient: {
-        padding: 26,
+        padding: 24,
         alignItems: 'center',
     },
     header: {
         alignItems: 'center',
-        marginBottom: 20,
+        marginBottom: 16,
     },
-    headerEmoji: {
-        fontSize: 48,
-        marginBottom: 8,
+    iconCircle: {
+        width: 52,
+        height: 52,
+        borderRadius: 26,
+        backgroundColor: 'rgba(0, 240, 255, 0.15)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 10,
+        borderWidth: 1,
+        borderColor: 'rgba(0, 240, 255, 0.3)',
     },
     title: {
-        fontSize: 26,
+        fontSize: 22,
         fontWeight: '900',
-        color: '#FFFFFF',
+        color: colors.textPrimary,
+        letterSpacing: 0.5,
     },
     subtitle: {
-        fontSize: 13,
-        color: 'rgba(255, 255, 255, 0.6)',
+        fontSize: 12,
+        color: colors.textMuted,
         textAlign: 'center',
         marginTop: 4,
     },
     spotlightContainer: {
         width: '100%',
-        marginVertical: 14,
+        marginVertical: 12,
         alignItems: 'center',
     },
     spotlightBox: {
         width: '100%',
-        borderRadius: 24,
+        borderRadius: 22,
         overflow: 'hidden',
-        borderWidth: 1.5,
-        borderColor: 'rgba(255, 255, 255, 0.2)',
     },
     spotlightGradient: {
-        padding: 3,
+        padding: 2,
     },
     innerPlayerBadge: {
-        backgroundColor: '#121226',
-        borderRadius: 22,
-        paddingVertical: 24,
+        backgroundColor: colors.bgElevated,
+        borderRadius: 20,
+        paddingVertical: 22,
         paddingHorizontal: 16,
         alignItems: 'center',
     },
-    avatarEmoji: {
-        fontSize: 38,
+    avatarPill: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        backgroundColor: colors.bgGlassHover,
+        justifyContent: 'center',
+        alignItems: 'center',
         marginBottom: 8,
     },
     playerName: {
-        fontSize: 28,
+        fontSize: 24,
         fontWeight: '900',
-        color: '#FFFFFF',
+        color: colors.textPrimary,
         textAlign: 'center',
     },
+    firstTurnBadge: {
+        backgroundColor: 'rgba(0, 240, 255, 0.15)',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 8,
+        marginTop: 8,
+        borderWidth: 1,
+        borderColor: 'rgba(0, 240, 255, 0.3)',
+    },
     winnerLabel: {
-        fontSize: 12,
-        fontWeight: '800',
-        color: '#00CEC9',
-        letterSpacing: 1.5,
-        marginTop: 6,
+        fontSize: 10,
+        fontWeight: '900',
+        color: colors.cyan,
+        letterSpacing: 1.2,
+    },
+    hintContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        marginBottom: 20,
     },
     directionHint: {
         fontSize: 12,
-        color: 'rgba(255, 255, 255, 0.5)',
-        textAlign: 'center',
-        marginBottom: 20,
+        color: colors.textMuted,
     },
     actions: {
         width: '100%',
@@ -268,30 +306,34 @@ const styles = StyleSheet.create({
     },
     spinAgainBtn: {
         flex: 1,
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-        paddingVertical: 16,
+        flexDirection: 'row',
+        backgroundColor: colors.bgGlassHover,
+        paddingVertical: 15,
         borderRadius: 16,
         alignItems: 'center',
         justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: colors.borderLight,
     },
     spinAgainText: {
-        color: '#FFFFFF',
+        color: colors.textSecondary,
         fontSize: 14,
         fontWeight: '700',
     },
     readyBtn: {
-        flex: 1.3,
+        flex: 1.4,
         borderRadius: 16,
         overflow: 'hidden',
     },
     readyBtnGradient: {
-        paddingVertical: 16,
+        flexDirection: 'row',
+        paddingVertical: 15,
         alignItems: 'center',
         justifyContent: 'center',
     },
     readyBtnText: {
-        color: '#FFFFFF',
-        fontSize: 16,
-        fontWeight: '800',
+        color: '#07080C',
+        fontSize: 15,
+        fontWeight: '900',
     },
 });
