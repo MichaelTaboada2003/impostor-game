@@ -8,6 +8,8 @@ import { PlayerNamesScreen } from './src/screens/PlayerNamesScreen';
 import { ThemeSelectionScreen } from './src/screens/ThemeSelectionScreen';
 import { RoleDistributionScreen } from './src/screens/RoleDistributionScreen';
 import { PlayingScreen } from './src/screens/PlayingScreen';
+import { VotingScreen } from './src/screens/VotingScreen';
+import { ResultsScreen } from './src/screens/ResultsScreen';
 import { colors } from './src/styles/colors';
 
 const GameNavigator: React.FC = () => {
@@ -41,6 +43,26 @@ const GameNavigator: React.FC = () => {
     setPhase('playing');
   };
 
+  const handleStartVoting = () => {
+    setPhase('voting');
+  };
+
+  const handleVotingBackToDiscussion = () => {
+    setPhase('playing');
+  };
+
+  const handleVotingComplete = () => {
+    setPhase('results');
+  };
+
+  const handleResultsReplay = () => {
+    setPhase('role-distribution');
+  };
+
+  const handleResultsNewGame = () => {
+    setPhase('theme-selection');
+  };
+
   const handleNewGame = () => {
     setPhase('setup');
   };
@@ -49,13 +71,47 @@ const GameNavigator: React.FC = () => {
     case 'setup':
       return <SetupScreen onNext={handleSetupNext} />;
     case 'player-names':
-      return <PlayerNamesScreen onBack={handlePlayerNamesBack} onNext={handlePlayerNamesNext} />;
+      return (
+        <PlayerNamesScreen
+          onBack={handlePlayerNamesBack}
+          onNext={handlePlayerNamesNext}
+        />
+      );
     case 'theme-selection':
-      return <ThemeSelectionScreen onBack={handleThemeBack} onNext={handleThemeNext} />;
+      return (
+        <ThemeSelectionScreen
+          onBack={handleThemeBack}
+          onNext={handleThemeNext}
+        />
+      );
     case 'role-distribution':
-      return <RoleDistributionScreen onBack={handleRoleBack} onComplete={handleRoleComplete} />;
+      return (
+        <RoleDistributionScreen
+          onBack={handleRoleBack}
+          onComplete={handleRoleComplete}
+        />
+      );
     case 'playing':
-      return <PlayingScreen onNewGame={handleNewGame} />;
+      return (
+        <PlayingScreen
+          onStartVoting={handleStartVoting}
+          onNewGame={handleNewGame}
+        />
+      );
+    case 'voting':
+      return (
+        <VotingScreen
+          onBackToDiscussion={handleVotingBackToDiscussion}
+          onVotedComplete={handleVotingComplete}
+        />
+      );
+    case 'results':
+      return (
+        <ResultsScreen
+          onReplay={handleResultsReplay}
+          onNewGame={handleResultsNewGame}
+        />
+      );
     default:
       return <SetupScreen onNext={handleSetupNext} />;
   }
@@ -77,6 +133,6 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#0a0a1a',
   },
 });

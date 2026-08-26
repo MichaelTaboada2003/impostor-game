@@ -10,10 +10,9 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useGame } from '../context/GameContext';
-import { themes } from '../data/themes';
-import { colors, gradients } from '../styles/colors';
+import { colors } from '../styles/colors';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 interface RoleDistributionScreenProps {
     onBack: () => void;
@@ -26,9 +25,10 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
     onBack,
     onComplete,
 }) => {
-    const { gameState, markPlayerAsSeen, nextPlayer, getCurrentPlayer } = useGame();
-    const currentThemeData = themes.find(t => t.id === gameState.config.themeId);
+    const { gameState, markPlayerAsSeen, nextPlayer, getCurrentPlayer, allThemes } = useGame();
+    const currentThemeData = allThemes.find(t => t.id === gameState.config.themeId);
     const [cardState, setCardState] = useState<CardState>('waiting');
+
     const holdProgress = useRef(new Animated.Value(0)).current;
     const cardOpacity = useRef(new Animated.Value(1)).current;
     const revealOpacity = useRef(new Animated.Value(0)).current;
@@ -39,6 +39,7 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
 
     const currentPlayer = getCurrentPlayer();
     const currentTheme = currentThemeData;
+    const isUndercoverMode = gameState.config.gameMode === 'undercover';
     const hasHints = !currentThemeData?.noHints && (gameState.config.allowHints ?? true);
     const progress = ((gameState.currentPlayerIndex + 1) / gameState.players.length) * 100;
 
@@ -49,25 +50,15 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
             useNativeDriver: true,
         }).start();
 
-        // Animacion de pulso para la tarjeta
         Animated.loop(
             Animated.sequence([
-                Animated.timing(pulseAnim, {
-                    toValue: 1.02,
-                    duration: 1500,
-                    useNativeDriver: true,
-                }),
-                Animated.timing(pulseAnim, {
-                    toValue: 1,
-                    duration: 1500,
-                    useNativeDriver: true,
-                }),
+                Animated.timing(pulseAnim, { toValue: 1.02, duration: 1500, useNativeDriver: true }),
+                Animated.timing(pulseAnim, { toValue: 1, duration: 1500, useNativeDriver: true }),
             ])
         ).start();
     }, []);
 
     useEffect(() => {
-        // Reset cuando cambia el jugador
         setCardState('waiting');
         cardOpacity.setValue(1);
         revealOpacity.setValue(0);
@@ -82,7 +73,7 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
 
         Animated.timing(holdProgress, {
             toValue: 1,
-            duration: 1500,
+            duration: 1200,
             useNativeDriver: false,
         }).start(({ finished }) => {
             if (finished) {
@@ -107,51 +98,27 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
     const revealCard = () => {
         setCardState('revealed');
 
-        // Animacion simple de fade/scale en lugar de flip
         Animated.parallel([
-            Animated.timing(cardOpacity, {
-                toValue: 0,
-                duration: 200,
-                useNativeDriver: true,
-            }),
-            Animated.timing(cardScale, {
-                toValue: 0.9,
-                duration: 200,
-                useNativeDriver: true,
-            }),
+            Animated.timing(cardOpacity, { toValue: 0, duration: 200, useNativeDriver: true }),
+            Animated.timing(cardScale, { toValue: 0.92, duration: 200, useNativeDriver: true }),
         ]).start(() => {
-            // Mostrar la carta revelada
             Animated.parallel([
-                Animated.timing(revealOpacity, {
-                    toValue: 1,
-                    duration: 300,
-                    useNativeDriver: true,
-                }),
-                Animated.spring(cardScale, {
-                    toValue: 1,
-                    friction: 6,
-                    tension: 50,
-                    useNativeDriver: true,
-                }),
+                Animated.timing(revealOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
+                Animated.spring(cardScale, { toValue: 1, friction: 6, tension: 50, useNativeDriver: true }),
             ]).start();
         });
 
-        // Vibracion dramatica para impostor
-        if (currentPlayer?.isImpostor) {
+        // Haptic feedback
+        if (currentPlayer?.isImpostor && !isUndercoverMode) {
             Vibration.vibrate([0, 100, 50, 100, 50, 100, 50, 200]);
-
-            // Animacion de shake
             Animated.sequence([
-                Animated.timing(shakeAnim, { toValue: 15, duration: 50, useNativeDriver: true }),
-                Animated.timing(shakeAnim, { toValue: -15, duration: 50, useNativeDriver: true }),
-                Animated.timing(shakeAnim, { toValue: 15, duration: 50, useNativeDriver: true }),
-                Animated.timing(shakeAnim, { toValue: -15, duration: 50, useNativeDriver: true }),
+                Animated.timing(shakeAnim, { toValue: 12, duration: 50, useNativeDriver: true }),
+                Animated.timing(shakeAnim, { toValue: -12, duration: 50, useNativeDriver: true }),
                 Animated.timing(shakeAnim, { toValue: 10, duration: 50, useNativeDriver: true }),
-                Animated.timing(shakeAnim, { toValue: -10, duration: 50, useNativeDriver: true }),
                 Animated.timing(shakeAnim, { toValue: 0, duration: 50, useNativeDriver: true }),
             ]).start();
         } else {
-            Vibration.vibrate(100);
+            Vibration.vibrate(80);
         }
 
         if (currentPlayer) {
@@ -161,7 +128,6 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
 
     const handleNext = () => {
         const isLastPlayer = gameState.currentPlayerIndex === gameState.players.length - 1;
-
         if (isLastPlayer) {
             onComplete();
         } else {
@@ -176,14 +142,16 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
 
     if (!currentPlayer) return null;
 
+    // En Undercover todos ven color de tripulante para no dar pistas al que mira sobre el hombro
+    const isClassicImpostor = currentPlayer.isImpostor && !isUndercoverMode;
+
     return (
         <LinearGradient
-            colors={['#0a0a1a', '#1a1a3a', '#0f0f2a']}
+            colors={['#0a0a1a', '#141432', '#0a0a1a']}
             style={styles.container}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
         >
-            {/* Background effects */}
             <View style={styles.bgCircle1} />
             <View style={styles.bgCircle2} />
 
@@ -193,7 +161,7 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
                     <View style={styles.progressSection}>
                         <View style={styles.progressBar}>
                             <LinearGradient
-                                colors={['#6C5CE7', '#A29BFE']}
+                                colors={['#6C5CE7', '#00CEC9']}
                                 start={{ x: 0, y: 0 }}
                                 end={{ x: 1, y: 0 }}
                                 style={[styles.progressFill, { width: `${progress}%` }]}
@@ -205,12 +173,12 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
                     </View>
 
                     <View style={styles.themeTag}>
-                        <Text style={styles.themeIcon}>{currentTheme?.icon}</Text>
+                        <Text style={styles.themeIcon}>{currentTheme?.icon || '🎭'}</Text>
                         <Text style={styles.themeName}>{currentTheme?.name}</Text>
                     </View>
                 </View>
 
-                {/* Player info */}
+                {/* Player Section */}
                 <View style={styles.playerSection}>
                     <View style={styles.playerAvatarContainer}>
                         <LinearGradient
@@ -224,22 +192,21 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
                     </View>
                     <Text style={styles.playerName}>{currentPlayer.name}</Text>
                     <Text style={styles.playerInstruction}>
-                        {cardState === 'waiting' && '👆 Manten presionada la carta'}
-                        {cardState === 'revealing' && '⏳ Sigue manteniendo...'}
+                        {cardState === 'waiting' && '👆 Pasa el teléfono y mantén presionado'}
+                        {cardState === 'revealing' && '⏳ Sigue manteniendo presionado...'}
+                        {cardState === 'revealed' && '🤫 ¡Memoriza tu palabra en secreto!'}
                     </Text>
                 </View>
 
                 {/* Card */}
                 <View style={styles.cardContainer}>
-                    {/* Hidden card (front) */}
+                    {/* Hidden Card Front */}
                     <Animated.View
                         style={[
                             styles.card,
                             {
                                 opacity: cardOpacity,
-                                transform: [
-                                    { scale: cardState === 'waiting' ? pulseAnim : cardScale },
-                                ],
+                                transform: [{ scale: cardState === 'waiting' ? pulseAnim : cardScale }],
                             },
                         ]}
                     >
@@ -251,7 +218,7 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
                             disabled={cardState === 'revealed'}
                         >
                             <LinearGradient
-                                colors={['#2a2a4a', '#1a1a3a', '#15152a']}
+                                colors={['#252545', '#16162e', '#121226']}
                                 style={styles.cardGradient}
                                 start={{ x: 0, y: 0 }}
                                 end={{ x: 1, y: 1 }}
@@ -261,22 +228,16 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
                                 </View>
 
                                 <Text style={styles.cardHiddenText}>
-                                    {cardState === 'waiting'
-                                        ? 'Manten presionado'
-                                        : 'Revelando...'}
+                                    {cardState === 'waiting' ? 'Mantén presionado para revelar' : 'Revelando rol...'}
                                 </Text>
 
-                                {/* Progress bar */}
                                 <View style={styles.holdProgressContainer}>
                                     <View style={styles.holdProgressBg}>
                                         <Animated.View
-                                            style={[
-                                                styles.holdProgressBar,
-                                                { width: progressWidth },
-                                            ]}
+                                            style={[styles.holdProgressBar, { width: progressWidth }]}
                                         >
                                             <LinearGradient
-                                                colors={['#6C5CE7', '#A29BFE']}
+                                                colors={['#6C5CE7', '#FD79A8', '#00CEC9']}
                                                 start={{ x: 0, y: 0 }}
                                                 end={{ x: 1, y: 0 }}
                                                 style={styles.holdProgressGradient}
@@ -288,25 +249,22 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
                         </TouchableOpacity>
                     </Animated.View>
 
-                    {/* Revealed card (back) */}
+                    {/* Revealed Card Back */}
                     <Animated.View
                         style={[
                             styles.card,
                             styles.cardRevealed,
                             {
                                 opacity: revealOpacity,
-                                transform: [
-                                    { scale: cardScale },
-                                    { translateX: shakeAnim },
-                                ],
+                                transform: [{ scale: cardScale }, { translateX: shakeAnim }],
                             },
                         ]}
                     >
                         <LinearGradient
                             colors={
-                                currentPlayer.isImpostor
-                                    ? ['#FF4757', '#C0392B', '#8B0000']
-                                    : ['#5DADE2', '#3498DB', '#1A5276']
+                                isClassicImpostor
+                                    ? ['#FF4757', '#C0392B', '#7A1818']
+                                    : ['#2980B9', '#3498DB', '#1A365D']
                             }
                             style={styles.cardGradient}
                             start={{ x: 0, y: 0 }}
@@ -315,48 +273,54 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
                             <View style={styles.roleContent}>
                                 <View style={styles.roleIconContainer}>
                                     <Text style={styles.roleEmoji}>
-                                        {currentPlayer.isImpostor ? '🔪' : '👤'}
+                                        {isClassicImpostor ? '🔪' : '👤'}
                                     </Text>
                                 </View>
 
                                 <Text style={styles.roleTitle}>
-                                    {currentPlayer.isImpostor ? '¡IMPOSTOR!' : 'TRIPULANTE'}
+                                    {isClassicImpostor ? '¡IMPOSTOR!' : 'TRIPULANTE'}
                                 </Text>
 
-                                {/* Contenedor de información para el jugador */}
                                 <View style={styles.infoWrapper}>
                                     <View style={styles.wordContainer}>
                                         <Text style={styles.wordLabel}>
-                                            {currentPlayer.isImpostor
-                                                ? 'Tu palabra es:'
-                                                : 'La palabra secreta es:'}
+                                            {isClassicImpostor ? 'Tu rol es:' : 'Tu palabra secreta es:'}
                                         </Text>
                                         <Text style={styles.wordText}>
-                                            {currentPlayer.isImpostor ? '???' : gameState.secretWord}
+                                            {currentPlayer.word}
                                         </Text>
                                     </View>
 
-                                    {/* Estado y Pista (Unificados) */}
-                                    <View style={currentPlayer.isImpostor ? styles.impostorWarningContainer : styles.hintStatusContainer}>
-                                        <Text style={currentPlayer.isImpostor ? styles.impostorWarning : styles.roleStatusText}>
-                                            {currentPlayer.isImpostor ? '🔪 ERES EL IMPOSTOR' : '👤 ERES TRIPULANTE'}
-                                        </Text>
-                                        
-                                        {hasHints && currentPlayer.hint !== '' && currentPlayer.isImpostor && (
-                                            <View style={styles.hintSectionInside}>
-                                                <View style={styles.hintDivider} />
-                                                <Text style={styles.hintInfoLabel}>💡 PISTA PARA DISIMULAR:</Text>
-                                                <Text style={styles.hintInfoText}>{currentPlayer.hint}</Text>
-                                            </View>
-                                        )}
-                                    </View>
+                                    {/* Warnings and Hints */}
+                                    {isClassicImpostor ? (
+                                        <View style={styles.impostorWarningContainer}>
+                                            <Text style={styles.impostorWarning}>
+                                                🔪 NO CONOCES LA PALABRA
+                                            </Text>
+                                            {hasHints && currentPlayer.hint ? (
+                                                <View style={styles.hintSectionInside}>
+                                                    <View style={styles.hintDivider} />
+                                                    <Text style={styles.hintInfoLabel}>💡 PISTA PARA DISIMULAR:</Text>
+                                                    <Text style={styles.hintInfoText}>{currentPlayer.hint}</Text>
+                                                </View>
+                                            ) : null}
+                                        </View>
+                                    ) : (
+                                        <View style={styles.hintStatusContainer}>
+                                            <Text style={styles.roleStatusText}>
+                                                {isUndercoverMode
+                                                    ? '🤫 Da pistas inteligentes sin delatarte'
+                                                    : '👤 Da pistas y descubre al impostor'}
+                                            </Text>
+                                        </View>
+                                    )}
                                 </View>
                             </View>
                         </LinearGradient>
                     </Animated.View>
                 </View>
 
-                {/* Main Action Button (Hold to reveal) */}
+                {/* Bottom Hold Action Button */}
                 {cardState !== 'revealed' && (
                     <Animated.View style={styles.actionButtonContainer}>
                         <TouchableOpacity
@@ -376,19 +340,16 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
                                 </Text>
                             </LinearGradient>
                         </TouchableOpacity>
-                        <Text style={styles.actionButtonHelp}>
-                            O mantén presionada la carta👆
-                        </Text>
                     </Animated.View>
                 )}
 
-                {/* Next button */}
+                {/* Next Player Action Button */}
                 {cardState === 'revealed' && (
                     <Animated.View style={styles.nextButtonContainer}>
                         <TouchableOpacity
                             style={styles.nextButton}
                             onPress={handleNext}
-                            activeOpacity={0.8}
+                            activeOpacity={0.85}
                         >
                             <LinearGradient
                                 colors={['#6C5CE7', '#A29BFE', '#6C5CE7']}
@@ -398,7 +359,7 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
                             >
                                 <Text style={styles.nextButtonText}>
                                     {gameState.currentPlayerIndex === gameState.players.length - 1
-                                        ? '🎮 ¡Comenzar Juego!'
+                                        ? '🎮 ¡Comenzar Debate y Juego!'
                                         : '→ Siguiente Jugador'}
                                 </Text>
                             </LinearGradient>
@@ -436,14 +397,14 @@ const styles = StyleSheet.create({
     },
     content: {
         flex: 1,
-        padding: 24,
-        paddingTop: 60,
+        padding: 22,
+        paddingTop: 54,
     },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'flex-start',
-        marginBottom: 20,
+        marginBottom: 16,
     },
     progressSection: {
         flex: 1,
@@ -454,7 +415,7 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(255, 255, 255, 0.1)',
         borderRadius: 3,
         overflow: 'hidden',
-        marginBottom: 8,
+        marginBottom: 6,
     },
     progressFill: {
         height: '100%',
@@ -467,47 +428,47 @@ const styles = StyleSheet.create({
     themeTag: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-        paddingHorizontal: 14,
-        paddingVertical: 8,
-        borderRadius: 20,
-        gap: 8,
+        backgroundColor: 'rgba(255, 255, 255, 0.08)',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 16,
+        gap: 6,
     },
     themeIcon: {
-        fontSize: 18,
+        fontSize: 16,
     },
     themeName: {
-        fontSize: 14,
-        color: 'rgba(255, 255, 255, 0.7)',
-        fontWeight: '600',
+        fontSize: 13,
+        color: 'rgba(255, 255, 255, 0.8)',
+        fontWeight: '700',
     },
     playerSection: {
         alignItems: 'center',
-        marginBottom: 24,
+        marginBottom: 20,
     },
     playerAvatarContainer: {
-        marginBottom: 12,
+        marginBottom: 10,
     },
     playerAvatar: {
-        width: 64,
-        height: 64,
-        borderRadius: 32,
+        width: 60,
+        height: 60,
+        borderRadius: 30,
         justifyContent: 'center',
         alignItems: 'center',
     },
     playerInitial: {
-        fontSize: 28,
+        fontSize: 26,
         fontWeight: '900',
         color: '#FFFFFF',
     },
     playerName: {
-        fontSize: 28,
+        fontSize: 26,
         fontWeight: '900',
         color: '#FFFFFF',
-        marginBottom: 8,
+        marginBottom: 4,
     },
     playerInstruction: {
-        fontSize: 16,
+        fontSize: 14,
         color: 'rgba(255, 255, 255, 0.6)',
         textAlign: 'center',
     },
@@ -517,44 +478,14 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     card: {
-        width: width - 80,
-        minHeight: 320,
+        width: width - 64,
+        minHeight: 310,
         borderRadius: 28,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 15 },
+        shadowOffset: { width: 0, height: 12 },
         shadowOpacity: 0.4,
-        shadowRadius: 25,
-        elevation: 20,
-    },
-    actionButtonContainer: {
-        alignItems: 'center',
-        marginTop: 20,
-    },
-    actionButton: {
-        width: width - 80,
-        borderRadius: 20,
-        overflow: 'hidden',
-        shadowColor: '#6C5CE7',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 5,
-    },
-    actionButtonGradient: {
-        paddingVertical: 18,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    actionButtonText: {
-        fontSize: 16,
-        fontWeight: '800',
-        color: '#FFFFFF',
-        letterSpacing: 1,
-    },
-    actionButtonHelp: {
-        fontSize: 12,
-        color: 'rgba(255, 255, 255, 0.4)',
-        marginTop: 8,
+        shadowRadius: 20,
+        elevation: 16,
     },
     cardRevealed: {
         position: 'absolute',
@@ -568,22 +499,23 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        padding: 24,
+        padding: 22,
         borderRadius: 28,
     },
     cardPattern: {
-        marginBottom: 16,
+        marginBottom: 12,
     },
     cardQuestionMark: {
-        fontSize: 100,
+        fontSize: 90,
         fontWeight: '900',
         color: 'rgba(255, 255, 255, 0.15)',
     },
     cardHiddenText: {
-        fontSize: 18,
+        fontSize: 16,
         color: 'rgba(255, 255, 255, 0.5)',
         textAlign: 'center',
-        marginBottom: 32,
+        marginBottom: 26,
+        fontWeight: '600',
     },
     holdProgressContainer: {
         width: '80%',
@@ -604,108 +536,68 @@ const styles = StyleSheet.create({
     },
     roleContent: {
         alignItems: 'center',
+        width: '100%',
     },
     roleIconContainer: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
+        width: 72,
+        height: 72,
+        borderRadius: 36,
         backgroundColor: 'rgba(255, 255, 255, 0.2)',
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 12,
+        marginBottom: 10,
     },
     roleEmoji: {
-        fontSize: 40,
+        fontSize: 36,
     },
     roleTitle: {
-        fontSize: 32,
+        fontSize: 28,
         fontWeight: '900',
         color: '#FFFFFF',
-        marginBottom: 24,
-        textShadowColor: 'rgba(0, 0, 0, 0.3)',
-        textShadowOffset: { width: 0, height: 2 },
-        textShadowRadius: 4,
+        marginBottom: 18,
         letterSpacing: 2,
     },
     infoWrapper: {
         width: '100%',
-        backgroundColor: 'rgba(0, 0, 0, 0.25)',
-        borderRadius: 24,
+        backgroundColor: 'rgba(0, 0, 0, 0.3)',
+        borderRadius: 22,
         padding: 4,
         overflow: 'hidden',
     },
     wordContainer: {
         alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingVertical: 16,
+        paddingHorizontal: 16,
+        paddingVertical: 14,
     },
     wordLabel: {
-        fontSize: 14,
-        color: 'rgba(255, 255, 255, 0.5)',
-        fontWeight: '600',
-        marginBottom: 8,
+        fontSize: 13,
+        color: 'rgba(255, 255, 255, 0.55)',
+        fontWeight: '700',
+        marginBottom: 6,
         textTransform: 'uppercase',
         letterSpacing: 1,
     },
     wordText: {
-        fontSize: 30,
+        fontSize: 28,
         fontWeight: '900',
         color: '#FFFFFF',
         textAlign: 'center',
     },
     impostorWarningContainer: {
-        backgroundColor: 'rgba(255, 71, 87, 0.2)',
+        backgroundColor: 'rgba(255, 71, 87, 0.25)',
         paddingVertical: 12,
-        paddingHorizontal: 20,
-        borderBottomLeftRadius: 20,
-        borderBottomRightRadius: 20,
+        paddingHorizontal: 16,
+        borderBottomLeftRadius: 18,
+        borderBottomRightRadius: 18,
         borderTopWidth: 1,
-        borderColor: 'rgba(255, 71, 87, 0.2)',
+        borderColor: 'rgba(255, 71, 87, 0.25)',
     },
     impostorWarning: {
-        fontSize: 15,
+        fontSize: 14,
         color: '#FF6B81',
         textAlign: 'center',
-        fontWeight: '700',
-    },
-    hintInfoContainer: {
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-        paddingVertical: 16,
-        paddingHorizontal: 20,
-        borderBottomLeftRadius: 20,
-        borderBottomRightRadius: 20,
-        borderTopWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.1)',
-        alignItems: 'center',
-    },
-    hintInfoLabel: {
-        fontSize: 11,
-        color: 'rgba(255, 255, 255, 0.4)',
         fontWeight: '800',
-        marginBottom: 4,
-        letterSpacing: 1,
-    },
-    hintInfoText: {
-        fontSize: 16,
-        color: '#FFFFFF',
-        textAlign: 'center',
-        fontWeight: '600',
-    },
-    hintStatusContainer: {
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-        paddingVertical: 12,
-        paddingHorizontal: 20,
-        borderBottomLeftRadius: 20,
-        borderBottomRightRadius: 20,
-        borderTopWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.1)',
-        alignItems: 'center',
-    },
-    roleStatusText: {
-        fontSize: 14,
-        color: 'rgba(255, 255, 255, 0.6)',
-        fontWeight: '800',
-        letterSpacing: 1.5,
+        letterSpacing: 0.5,
     },
     hintSectionInside: {
         width: '100%',
@@ -714,31 +606,79 @@ const styles = StyleSheet.create({
     hintDivider: {
         width: '40%',
         height: 1,
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-        marginVertical: 12,
+        backgroundColor: 'rgba(255, 255, 255, 0.15)',
+        marginVertical: 8,
+    },
+    hintInfoLabel: {
+        fontSize: 10,
+        color: 'rgba(255, 255, 255, 0.5)',
+        fontWeight: '800',
+        marginBottom: 2,
+    },
+    hintInfoText: {
+        fontSize: 16,
+        color: '#FFFFFF',
+        textAlign: 'center',
+        fontWeight: '700',
+    },
+    hintStatusContainer: {
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        borderBottomLeftRadius: 18,
+        borderBottomRightRadius: 18,
+        borderTopWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.1)',
+        alignItems: 'center',
+    },
+    roleStatusText: {
+        fontSize: 13,
+        color: 'rgba(255, 255, 255, 0.7)',
+        fontWeight: '700',
+        textAlign: 'center',
+    },
+    actionButtonContainer: {
+        alignItems: 'center',
+        marginTop: 14,
+    },
+    actionButton: {
+        width: width - 64,
+        borderRadius: 18,
+        overflow: 'hidden',
+    },
+    actionButtonGradient: {
+        paddingVertical: 16,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    actionButtonText: {
+        fontSize: 15,
+        fontWeight: '800',
+        color: '#FFFFFF',
+        letterSpacing: 1,
     },
     nextButtonContainer: {
-        paddingTop: 20,
+        paddingTop: 14,
     },
     nextButton: {
-        borderRadius: 24,
+        borderRadius: 22,
         overflow: 'hidden',
         shadowColor: '#6C5CE7',
         shadowOffset: { width: 0, height: 8 },
         shadowOpacity: 0.5,
-        shadowRadius: 20,
-        elevation: 12,
+        shadowRadius: 18,
+        elevation: 10,
     },
     nextButtonGradient: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: 20,
-        paddingHorizontal: 32,
+        paddingVertical: 18,
+        paddingHorizontal: 28,
     },
     nextButtonText: {
-        fontSize: 18,
-        fontWeight: '700',
+        fontSize: 17,
+        fontWeight: '800',
         color: '#FFFFFF',
     },
 });

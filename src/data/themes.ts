@@ -1,19 +1,9 @@
 // Tematicas del juego Impostor
 // Las palabras no se muestran al usuario cuando selecciona la tematica
 
-export interface WordEntry {
-    word: string;
-    hint: string;
-}
+import { Theme, WordEntry } from '../types/game';
+export { Theme, WordEntry };
 
-export interface Theme {
-    id: string;
-    name: string;
-    icon: string;
-    color: string;
-    words: WordEntry[];
-    noHints?: boolean; // si true, no hay pistas (usado en Shalom)
-}
 
 export const themes: Theme[] = [
     {
@@ -28,7 +18,7 @@ export const themes: Theme[] = [
             { word: 'Leon', hint: 'Rey' },
             { word: 'Tigre', hint: 'Rayas' },
             { word: 'Jirafa', hint: 'Cuello' },
-            { word: 'Cebra', hint: 'Blanquinegro' },
+            { word: 'Cebra', hint: 'Rallas' },
             { word: 'Mono', hint: 'Banana' },
             { word: 'Serpiente', hint: 'Veneno' },
             { word: 'Aguila', hint: 'Vuelo' },
@@ -539,17 +529,21 @@ export const themes: Theme[] = [
             { word: 'Dana', hint: '' },
             { word: 'Yulieth', hint: '' },
             { word: 'Yenis', hint: '' },
+            { word: 'Zapata', hint: '' },
+            { word: 'Lucas', hint: '' },
+            { word: 'Jhonatan', hint: '' },
         ]
     }
 ];
 
-export const getRandomWordEntry = (themeId: string): WordEntry => {
-    const theme = themes.find(t => t.id === themeId);
+export const getRandomWordEntry = (themeId: string, customThemes?: Theme[]): WordEntry => {
+    const all = customThemes ? [...themes, ...customThemes] : themes;
+    const theme = all.find(t => t.id === themeId);
     if (!theme || theme.words.length === 0) return { word: '', hint: '' };
     return theme.words[Math.floor(Math.random() * theme.words.length)];
 };
 
-// Backward compat: solo devuelve la palabra
-export const getRandomWord = (themeId: string): string => {
-    return getRandomWordEntry(themeId).word;
+export const getRandomWord = (themeId: string, customThemes?: Theme[]): string => {
+    return getRandomWordEntry(themeId, customThemes).word;
 };
+

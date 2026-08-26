@@ -12,7 +12,9 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useGame } from '../context/GameContext';
-import { colors, gradients } from '../styles/colors';
+import { SavedGroupsModal } from '../components/SavedGroupsModal';
+import { colors } from '../styles/colors';
+import { PlayerGroup } from '../types/game';
 
 interface PlayerNamesScreenProps {
     onBack: () => void;
@@ -23,42 +25,29 @@ export const PlayerNamesScreen: React.FC<PlayerNamesScreenProps> = ({
     onBack,
     onNext,
 }) => {
-    const { gameState, playerNames, setPlayerName } = useGame();
+    const {
+        gameState,
+        playerNames,
+        setPlayerName,
+        savedGroups,
+        saveCurrentGroup,
+        loadGroup,
+        deleteGroup,
+    } = useGame();
+
+    const [showGroupsModal, setShowGroupsModal] = useState(false);
     const { numberOfPlayers } = gameState.config;
+
     const fadeAnim = useRef(new Animated.Value(0)).current;
-    const headerAnim = useRef(new Animated.Value(-30)).current;
-    const inputAnims = useRef(
-        Array.from({ length: 15 }, () => new Animated.Value(0))
-    ).current;
+    const headerAnim = useRef(new Animated.Value(-20)).current;
     const inputRefs = useRef<(TextInput | null)[]>([]);
 
     useEffect(() => {
-        // Animación del header
         Animated.parallel([
-            Animated.timing(fadeAnim, {
-                toValue: 1,
-                duration: 400,
-                useNativeDriver: true,
-            }),
-            Animated.spring(headerAnim, {
-                toValue: 0,
-                friction: 8,
-                tension: 50,
-                useNativeDriver: true,
-            }),
+            Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
+            Animated.spring(headerAnim, { toValue: 0, friction: 8, tension: 50, useNativeDriver: true }),
         ]).start();
-
-        // Animación escalonada de los inputs
-        const animations = inputAnims.slice(0, numberOfPlayers).map((anim, index) =>
-            Animated.timing(anim, {
-                toValue: 1,
-                duration: 300,
-                delay: index * 60,
-                useNativeDriver: true,
-            })
-        );
-        Animated.stagger(60, animations).start();
-    }, [numberOfPlayers]);
+    }, []);
 
     const handleNameChange = (index: number, name: string) => {
         setPlayerName(index, name);
@@ -72,16 +61,15 @@ export const PlayerNamesScreen: React.FC<PlayerNamesScreenProps> = ({
 
     const allNamesValid = playerNames
         .slice(0, numberOfPlayers)
-        .every(name => name.trim().length > 0);
+        .every(name => name && name.trim().length > 0);
 
     return (
         <LinearGradient
-            colors={['#0a0a1a', '#1a1a3a', '#0f0f2a']}
+            colors={['#0a0a1a', '#141432', '#0a0a1a']}
             style={styles.container}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
         >
-            {/* Background effects */}
             <View style={styles.bgCircle1} />
             <View style={styles.bgCircle2} />
 
@@ -89,21 +77,35 @@ export const PlayerNamesScreen: React.FC<PlayerNamesScreenProps> = ({
                 style={styles.keyboardView}
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             >
+                {/* Header */}
                 <Animated.View
                     style={[
                         styles.header,
-                        {
-                            opacity: fadeAnim,
-                            transform: [{ translateY: headerAnim }]
-                        },
+                        { opacity: fadeAnim, transform: [{ translateY: headerAnim }] },
                     ]}
                 >
-                    <TouchableOpacity style={styles.backButton} onPress={onBack}>
-                        <View style={styles.backButtonInner}>
-                            <Text style={styles.backButtonIcon}>←</Text>
-                            <Text style={styles.backButtonText}>Atrás</Text>
-                        </View>
-                    </TouchableOpacity>
+                    <View style={styles.topNavRow}>
+                        <TouchableOpacity style={styles.backButton} onPress={onBack}>
+                            <View style={styles.backButtonInner}>
+                                <Text style={styles.backButtonIcon}>←</Text>
+                                <Text style={styles.backButtonText}>Atrás</Text>
+                            </View>
+                        </TouchableOpacity>
+
+                        {/* Saved Groups Trigger */}
+                        <TouchableOpacity
+                            style={styles.groupsTriggerBtn}
+                            onPress={() => setShowGroupsModal(true)}
+                            activeOpacity={0.8}
+                        >
+                            <LinearGradient
+                                colors={['rgba(108, 92, 231, 0.4)', 'rgba(108, 92, 231, 0.15)']}
+                                style={styles.groupsTriggerGradient}
+                            >
+                                <Text style={styles.groupsTriggerText}>👥 Grupos ({savedGroups.length})</Text>
+                            </LinearGradient>
+                        </TouchableOpacity>
+                    </View>
 
                     <View style={styles.titleSection}>
                         <View style={styles.titleRow}>
@@ -111,16 +113,12 @@ export const PlayerNamesScreen: React.FC<PlayerNamesScreenProps> = ({
                             <Text style={styles.title}>Nombres</Text>
                         </View>
                         <Text style={styles.subtitle}>
-                            Ingresa el nombre de cada jugador
+                            Ingresa el nombre de cada participante
                         </Text>
-                    </View>
-
-                    <View style={styles.countBadge}>
-                        <Text style={styles.countText}>{numberOfPlayers}</Text>
-                        <Text style={styles.countLabel}>jugadores</Text>
                     </View>
                 </Animated.View>
 
+                {/* Inputs List */}
                 <ScrollView
                     style={styles.scrollView}
                     contentContainerStyle={styles.scrollContent}
@@ -128,21 +126,7 @@ export const PlayerNamesScreen: React.FC<PlayerNamesScreenProps> = ({
                     keyboardShouldPersistTaps="handled"
                 >
                     {Array.from({ length: numberOfPlayers }, (_, index) => (
-                        <Animated.View
-                            key={index}
-                            style={[
-                                styles.inputContainer,
-                                {
-                                    opacity: inputAnims[index],
-                                    transform: [{
-                                        translateX: inputAnims[index].interpolate({
-                                            inputRange: [0, 1],
-                                            outputRange: [-30, 0],
-                                        }),
-                                    }],
-                                },
-                            ]}
-                        >
+                        <View key={index} style={styles.inputContainer}>
                             <View style={styles.inputWrapper}>
                                 <LinearGradient
                                     colors={['#6C5CE7', '#5B4BD5']}
@@ -158,10 +142,10 @@ export const PlayerNamesScreen: React.FC<PlayerNamesScreenProps> = ({
                                         value={playerNames[index]}
                                         onChangeText={(text) => handleNameChange(index, text)}
                                         placeholder={`Nombre del jugador ${index + 1}`}
-                                        placeholderTextColor="rgba(255, 255, 255, 0.3)"
+                                        placeholderTextColor="rgba(255, 255, 255, 0.35)"
                                         returnKeyType={index < numberOfPlayers - 1 ? 'next' : 'done'}
                                         onSubmitEditing={() => focusNextInput(index)}
-                                        maxLength={20}
+                                        maxLength={22}
                                         autoCapitalize="words"
                                     />
                                 </View>
@@ -172,10 +156,11 @@ export const PlayerNamesScreen: React.FC<PlayerNamesScreenProps> = ({
                                     </View>
                                 )}
                             </View>
-                        </Animated.View>
+                        </View>
                     ))}
                 </ScrollView>
 
+                {/* Footer */}
                 <Animated.View style={[styles.footer, { opacity: fadeAnim }]}>
                     <LinearGradient
                         colors={['rgba(10, 10, 26, 0)', 'rgba(10, 10, 26, 0.95)', 'rgba(10, 10, 26, 1)']}
@@ -188,7 +173,7 @@ export const PlayerNamesScreen: React.FC<PlayerNamesScreenProps> = ({
                             ]}
                             onPress={onNext}
                             disabled={!allNamesValid}
-                            activeOpacity={0.8}
+                            activeOpacity={0.85}
                         >
                             <LinearGradient
                                 colors={
@@ -210,7 +195,7 @@ export const PlayerNamesScreen: React.FC<PlayerNamesScreenProps> = ({
                                 </Text>
                                 <View style={[
                                     styles.arrowContainer,
-                                    !allNamesValid && styles.arrowContainerDisabled
+                                    !allNamesValid && styles.arrowContainerDisabled,
                                 ]}>
                                     <Text style={styles.continueButtonIcon}>→</Text>
                                 </View>
@@ -219,6 +204,17 @@ export const PlayerNamesScreen: React.FC<PlayerNamesScreenProps> = ({
                     </LinearGradient>
                 </Animated.View>
             </KeyboardAvoidingView>
+
+            {/* Saved Groups Modal */}
+            <SavedGroupsModal
+                visible={showGroupsModal}
+                savedGroups={savedGroups}
+                currentNames={playerNames.slice(0, numberOfPlayers)}
+                onClose={() => setShowGroupsModal(false)}
+                onSelectGroup={(g: PlayerGroup) => loadGroup(g)}
+                onSaveGroup={(name: string) => saveCurrentGroup(name)}
+                onDeleteGroup={(id: string) => deleteGroup(id)}
+            />
         </LinearGradient>
     );
 };
@@ -242,7 +238,7 @@ const styles = StyleSheet.create({
         width: 150,
         height: 150,
         borderRadius: 75,
-        backgroundColor: '#A29BFE',
+        backgroundColor: '#00CEC9',
         bottom: 150,
         left: -50,
         opacity: 0.08,
@@ -251,75 +247,74 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     header: {
-        paddingTop: 60,
-        paddingHorizontal: 24,
-        paddingBottom: 20,
+        paddingTop: 54,
+        paddingHorizontal: 22,
+        paddingBottom: 16,
+    },
+    topNavRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 16,
     },
     backButton: {
-        marginBottom: 20,
+        paddingVertical: 6,
     },
     backButtonInner: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 8,
+        gap: 6,
     },
     backButtonIcon: {
-        fontSize: 20,
-        color: 'rgba(255, 255, 255, 0.6)',
+        fontSize: 18,
+        color: 'rgba(255, 255, 255, 0.7)',
     },
     backButtonText: {
-        fontSize: 16,
-        color: 'rgba(255, 255, 255, 0.6)',
+        fontSize: 15,
+        color: 'rgba(255, 255, 255, 0.7)',
+    },
+    groupsTriggerBtn: {
+        borderRadius: 14,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: 'rgba(108, 92, 231, 0.4)',
+    },
+    groupsTriggerGradient: {
+        paddingHorizontal: 14,
+        paddingVertical: 8,
+    },
+    groupsTriggerText: {
+        color: '#A29BFE',
+        fontSize: 13,
+        fontWeight: '700',
     },
     titleSection: {
-        marginBottom: 16,
+        gap: 4,
     },
     titleRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 12,
-        marginBottom: 8,
+        gap: 10,
     },
     titleEmoji: {
-        fontSize: 32,
+        fontSize: 28,
     },
     title: {
-        fontSize: 32,
+        fontSize: 30,
         fontWeight: '900',
         color: '#FFFFFF',
     },
     subtitle: {
-        fontSize: 15,
+        fontSize: 14,
         color: 'rgba(255, 255, 255, 0.5)',
-    },
-    countBadge: {
-        position: 'absolute',
-        top: 60,
-        right: 24,
-        backgroundColor: 'rgba(108, 92, 231, 0.2)',
-        paddingHorizontal: 16,
-        paddingVertical: 10,
-        borderRadius: 16,
-        alignItems: 'center',
-    },
-    countText: {
-        fontSize: 24,
-        fontWeight: '900',
-        color: '#6C5CE7',
-    },
-    countLabel: {
-        fontSize: 10,
-        color: 'rgba(255, 255, 255, 0.5)',
-        textTransform: 'uppercase',
-        letterSpacing: 1,
     },
     scrollView: {
         flex: 1,
     },
     scrollContent: {
-        paddingHorizontal: 24,
+        paddingHorizontal: 22,
         paddingBottom: 140,
-        gap: 12,
+        gap: 10,
     },
     inputContainer: {
         marginBottom: 0,
@@ -328,19 +323,19 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: 'rgba(255, 255, 255, 0.05)',
-        borderRadius: 20,
+        borderRadius: 18,
         borderWidth: 1,
         borderColor: 'rgba(255, 255, 255, 0.08)',
         overflow: 'hidden',
     },
     playerNumberBadge: {
-        width: 50,
-        height: 60,
+        width: 48,
+        height: 56,
         justifyContent: 'center',
         alignItems: 'center',
     },
     playerNumberText: {
-        fontSize: 20,
+        fontSize: 18,
         fontWeight: '800',
         color: '#FFFFFF',
     },
@@ -348,25 +343,25 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     input: {
-        height: 60,
-        paddingHorizontal: 16,
-        fontSize: 17,
+        height: 56,
+        paddingHorizontal: 14,
+        fontSize: 16,
         color: '#FFFFFF',
         fontWeight: '600',
     },
     checkMark: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
+        width: 32,
+        height: 32,
+        borderRadius: 16,
         backgroundColor: '#00B894',
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: 12,
     },
     checkMarkText: {
-        fontSize: 18,
+        fontSize: 16,
         color: '#FFFFFF',
-        fontWeight: '700',
+        fontWeight: '800',
     },
     footer: {
         position: 'absolute',
@@ -375,18 +370,18 @@ const styles = StyleSheet.create({
         right: 0,
     },
     footerGradient: {
-        paddingHorizontal: 24,
-        paddingTop: 40,
-        paddingBottom: 40,
+        paddingHorizontal: 22,
+        paddingTop: 30,
+        paddingBottom: 36,
     },
     continueButton: {
-        borderRadius: 24,
+        borderRadius: 22,
         overflow: 'hidden',
         shadowColor: '#6C5CE7',
         shadowOffset: { width: 0, height: 8 },
         shadowOpacity: 0.5,
-        shadowRadius: 20,
-        elevation: 12,
+        shadowRadius: 18,
+        elevation: 10,
     },
     continueButtonDisabled: {
         shadowOpacity: 0,
@@ -396,22 +391,22 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: 20,
-        paddingHorizontal: 32,
-        gap: 16,
+        paddingVertical: 18,
+        paddingHorizontal: 28,
+        gap: 14,
     },
     continueButtonText: {
-        fontSize: 20,
-        fontWeight: '700',
+        fontSize: 18,
+        fontWeight: '800',
         color: '#FFFFFF',
     },
     continueButtonTextDisabled: {
         color: 'rgba(255, 255, 255, 0.4)',
     },
     arrowContainer: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
+        width: 30,
+        height: 30,
+        borderRadius: 15,
         backgroundColor: 'rgba(255, 255, 255, 0.2)',
         justifyContent: 'center',
         alignItems: 'center',
@@ -420,7 +415,7 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(255, 255, 255, 0.1)',
     },
     continueButtonIcon: {
-        fontSize: 18,
+        fontSize: 16,
         color: '#FFFFFF',
         fontWeight: '700',
     },
