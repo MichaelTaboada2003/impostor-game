@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { GameProvider, useGame } from './src/context/GameContext';
 import { SetupScreen } from './src/screens/SetupScreen';
@@ -11,6 +11,51 @@ import { PlayingScreen } from './src/screens/PlayingScreen';
 import { VotingScreen } from './src/screens/VotingScreen';
 import { ResultsScreen } from './src/screens/ResultsScreen';
 import { colors } from './src/styles/colors';
+
+// Safe Error Boundary to prevent crashes
+interface ErrorBoundaryProps {
+  children: ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  errorText: string;
+}
+
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false, errorText: '' };
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, errorText: error.message || 'Error inesperado' };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('App ErrorBoundary caught:', error, errorInfo);
+  }
+
+  handleRestart = () => {
+    this.setState({ hasError: false, errorText: '' });
+  };
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <SafeAreaView style={styles.errorContainer}>
+          <Text style={styles.errorEmoji}>⚠️</Text>
+          <Text style={styles.errorTitle}>Algo no salió como esperábamos</Text>
+          <Text style={styles.errorSubtitle}>{this.state.errorText}</Text>
+          <TouchableOpacity style={styles.errorButton} onPress={this.handleRestart} activeOpacity={0.8}>
+            <Text style={styles.errorButtonText}>Reiniciar Aplicación</Text>
+          </TouchableOpacity>
+        </SafeAreaView>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 const GameNavigator: React.FC = () => {
   const { gameState, setPhase } = useGame();
@@ -117,42 +162,60 @@ const GameNavigator: React.FC = () => {
   }
 };
 
-import * as Updates from 'expo-updates';
-
 export default function App() {
-  React.useEffect(() => {
-    async function checkForUpdates() {
-      try {
-        if (!__DEV__) {
-          const update = await Updates.checkForUpdateAsync();
-          if (update.isAvailable) {
-            await Updates.fetchUpdateAsync();
-            await Updates.reloadAsync();
-          }
-        }
-      } catch (e) {
-        // Silently ignore if offline or in local dev
-      }
-    }
-    checkForUpdates();
-  }, []);
-
   return (
-    <SafeAreaProvider>
-      <GameProvider>
-        <SafeAreaView style={styles.container}>
-          <StatusBar style="light" />
-          <GameNavigator />
-        </SafeAreaView>
-      </GameProvider>
-    </SafeAreaProvider>
+    <ErrorBoundary>
+      <SafeAreaProvider>
+        <GameProvider>
+          <SafeAreaView style={styles.container}>
+            <StatusBar style="light" />
+            <GameNavigator />
+          </SafeAreaView>
+        </GameProvider>
+      </SafeAreaProvider>
+    </ErrorBoundary>
   );
 }
-
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#0a0a1a',
+  },
+  errorContainer: {
+    flex: 1,
+    backgroundColor: '#0a0a1a',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  errorEmoji: {
+    fontSize: 48,
+    marginBottom: 16,
+  },
+  errorTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  errorSubtitle: {
+    fontSize: 14,
+    color: '#A0A5B5',
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 20,
+  },
+  errorButton: {
+    backgroundColor: '#7952FF',
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 14,
+  },
+  errorButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 15,
   },
 });
