@@ -12,11 +12,12 @@ import {
     KeyboardAvoidingView,
     Platform,
     Alert,
+    Vibration,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import { aiThemeService, AI_SUGGESTION_CHIPS } from '../services/aiThemeService';
-import { Theme, WordEntry } from '../types/game';
+import { Theme } from '../types/game';
 import { colors, gradients } from '../styles/colors';
 
 interface AIThemeModalProps {
@@ -27,10 +28,10 @@ interface AIThemeModalProps {
 
 const LOADING_MESSAGES = [
     'Sintonizando red neuronal Groq...',
-    'Generando conceptos y palabras clave...',
+    'Generando conceptos y palabras en secreto...',
     'Diseñando pistas sutiles de infiltración...',
     'Calibrando parejas para modo Undercover...',
-    '¡Finalizando detalles de la temática!',
+    '¡Finalizando temática secreta!',
 ];
 
 export const AIThemeModal: React.FC<AIThemeModalProps> = ({
@@ -88,6 +89,7 @@ export const AIThemeModal: React.FC<AIThemeModalProps> = ({
                 vibe,
                 wordCount,
             });
+            Vibration.vibrate([0, 100, 50, 150]);
             setGeneratedTheme(theme);
         } catch (error: any) {
             Alert.alert(
@@ -101,6 +103,7 @@ export const AIThemeModal: React.FC<AIThemeModalProps> = ({
 
     const handleUseTheme = () => {
         if (generatedTheme) {
+            Vibration.vibrate(20);
             onThemeCreatedAndSelect(generatedTheme);
             handleClose();
         }
@@ -111,15 +114,6 @@ export const AIThemeModal: React.FC<AIThemeModalProps> = ({
         setGeneratedTheme(null);
         setIsLoading(false);
         onClose();
-    };
-
-    const removeWord = (indexToRemove: number) => {
-        if (!generatedTheme) return;
-        const updatedWords = generatedTheme.words.filter((_, i) => i !== indexToRemove);
-        setGeneratedTheme({
-            ...generatedTheme,
-            words: updatedWords,
-        });
     };
 
     const spinInterpolate = rotateAnim.interpolate({
@@ -169,7 +163,7 @@ export const AIThemeModal: React.FC<AIThemeModalProps> = ({
                                         </View>
                                     </View>
                                     <Text style={styles.modalSubtitle}>
-                                        Escribe cualquier idea para construir palabras y pistas
+                                        Crea palabras y pistas secretas sin revelar su contenido
                                     </Text>
                                 </View>
                             </View>
@@ -195,7 +189,7 @@ export const AIThemeModal: React.FC<AIThemeModalProps> = ({
                                             <Ionicons name="sparkles-outline" size={18} color={colors.primaryLight} style={{ marginRight: 10 }} />
                                             <TextInput
                                                 style={styles.textInput}
-                                                placeholder="Ej. Reggaeton 2000s, Marvel, Cocina Italiana..."
+                                                placeholder="Ej. Reggaeton 2000s, Marvel, Cocina..."
                                                 placeholderTextColor={colors.textMuted}
                                                 value={topic}
                                                 onChangeText={setTopic}
@@ -335,14 +329,15 @@ export const AIThemeModal: React.FC<AIThemeModalProps> = ({
                                         {LOADING_MESSAGES[loadingMsgIndex]}
                                     </Text>
                                     <Text style={styles.loadingSubtext}>
-                                        Inferencia de alto rendimiento mediante Groq
+                                        Generando palabras protegidas con Groq
                                     </Text>
                                 </View>
                             )}
 
-                            {/* Preview State */}
+                            {/* READY STATE (Strictly Hidden to prevent spoiler / advantage) */}
                             {generatedTheme && !isLoading && (
-                                <View style={styles.previewContainer}>
+                                <View style={styles.readyContainer}>
+                                    {/* Theme Title Card */}
                                     <View style={styles.previewCardHeader}>
                                         <LinearGradient
                                             colors={[`${generatedTheme.color}40`, 'rgba(255, 255, 255, 0.03)']}
@@ -367,38 +362,20 @@ export const AIThemeModal: React.FC<AIThemeModalProps> = ({
                                         </LinearGradient>
                                     </View>
 
-                                    <View style={styles.wordsListHeader}>
-                                        <Text style={styles.wordsPreviewLabel}>
-                                            Palabras y Pistas generadas:
-                                        </Text>
-                                        <Text style={styles.wordsPreviewHelp}>
-                                            Toca ✕ para descartar palabras
-                                        </Text>
-                                    </View>
-
-                                    <View style={styles.wordsList}>
-                                        {generatedTheme.words.map((item, idx) => (
-                                            <View key={idx} style={styles.wordItemRow}>
-                                                <View style={styles.wordNumberBadge}>
-                                                    <Text style={styles.wordNumberText}>{idx + 1}</Text>
-                                                </View>
-                                                <View style={styles.wordDetails}>
-                                                    <Text style={styles.wordTitle}>{item.word}</Text>
-                                                    {item.hint ? (
-                                                        <Text style={styles.wordHint}>
-                                                            Pista: <Text style={{ color: colors.warning }}>{item.hint}</Text>
-                                                        </Text>
-                                                    ) : null}
-                                                </View>
-                                                <TouchableOpacity
-                                                    onPress={() => removeWord(idx)}
-                                                    style={styles.deleteWordBtn}
-                                                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                                                >
-                                                    <Ionicons name="trash-outline" size={16} color={colors.impostor} />
-                                                </TouchableOpacity>
+                                    {/* Secret Protection Notice Box */}
+                                    <View style={styles.secretShieldCard}>
+                                        <LinearGradient
+                                            colors={['rgba(0, 240, 255, 0.12)', 'rgba(121, 82, 255, 0.04)']}
+                                            style={styles.secretShieldGradient}
+                                        >
+                                            <View style={styles.secretShieldIconCircle}>
+                                                <MaterialCommunityIcons name="incognito" size={32} color={colors.cyan} />
                                             </View>
-                                        ))}
+                                            <Text style={styles.secretShieldTitle}>CONTENIDO OCULTO</Text>
+                                            <Text style={styles.secretShieldDescription}>
+                                                Las palabras y pistas generadas se mantienen en secreto para que nadie tenga ventaja previa y todos los jugadores compitan en igualdad de condiciones.
+                                            </Text>
+                                        </LinearGradient>
                                     </View>
                                 </View>
                             )}
@@ -455,7 +432,7 @@ export const AIThemeModal: React.FC<AIThemeModalProps> = ({
                                             style={styles.primaryPlayGradient}
                                         >
                                             <Ionicons name="play" size={18} color="#07080C" style={{ marginRight: 6 }} />
-                                            <Text style={styles.primaryPlayText}>Jugar Ahora</Text>
+                                            <Text style={styles.primaryPlayText}>¡Jugar con este Tema!</Text>
                                         </LinearGradient>
                                     </TouchableOpacity>
                                 </View>
@@ -475,7 +452,7 @@ const styles = StyleSheet.create({
         justifyContent: 'flex-end',
     },
     sheetContainer: {
-        height: '90%',
+        height: '88%',
         borderTopLeftRadius: 28,
         borderTopRightRadius: 28,
         overflow: 'hidden',
@@ -715,8 +692,9 @@ const styles = StyleSheet.create({
         marginTop: 4,
         textAlign: 'center',
     },
-    previewContainer: {
-        gap: 12,
+    readyContainer: {
+        gap: 16,
+        paddingVertical: 10,
     },
     previewCardHeader: {
         borderRadius: 18,
@@ -767,62 +745,39 @@ const styles = StyleSheet.create({
         color: colors.success,
         fontWeight: '700',
     },
-    wordsListHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginTop: 6,
-    },
-    wordsPreviewLabel: {
-        fontSize: 13,
-        fontWeight: '800',
-        color: colors.textSecondary,
-    },
-    wordsPreviewHelp: {
-        fontSize: 11,
-        color: colors.textMuted,
-    },
-    wordsList: {
-        gap: 6,
-    },
-    wordItemRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: colors.bgElevated,
-        borderRadius: 12,
-        padding: 12,
+    secretShieldCard: {
+        borderRadius: 18,
+        overflow: 'hidden',
         borderWidth: 1,
-        borderColor: colors.borderSubtle,
+        borderColor: 'rgba(0, 240, 255, 0.25)',
     },
-    wordNumberBadge: {
-        width: 22,
-        height: 22,
-        borderRadius: 11,
-        backgroundColor: colors.bgGlassHover,
+    secretShieldGradient: {
+        padding: 20,
+        alignItems: 'center',
+    },
+    secretShieldIconCircle: {
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        backgroundColor: 'rgba(0, 240, 255, 0.15)',
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: 10,
+        marginBottom: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(0, 240, 255, 0.3)',
     },
-    wordNumberText: {
-        color: colors.primaryLight,
-        fontSize: 11,
-        fontWeight: '800',
+    secretShieldTitle: {
+        fontSize: 13,
+        fontWeight: '900',
+        color: colors.cyan,
+        letterSpacing: 2,
+        marginBottom: 8,
     },
-    wordDetails: {
-        flex: 1,
-    },
-    wordTitle: {
-        fontSize: 15,
-        fontWeight: '700',
-        color: colors.textPrimary,
-    },
-    wordHint: {
-        fontSize: 12,
-        color: colors.textMuted,
-        marginTop: 2,
-    },
-    deleteWordBtn: {
-        padding: 6,
+    secretShieldDescription: {
+        fontSize: 13,
+        color: colors.textSecondary,
+        textAlign: 'center',
+        lineHeight: 18,
     },
     modalFooter: {
         padding: 16,
@@ -870,7 +825,7 @@ const styles = StyleSheet.create({
         fontWeight: '700',
     },
     primaryPlayBtn: {
-        flex: 1.5,
+        flex: 1.6,
         borderRadius: 16,
         overflow: 'hidden',
     },
