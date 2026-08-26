@@ -8,18 +8,18 @@ import {
     Animated,
     Dimensions,
     TextInput,
-    Alert,
     Vibration,
+    Modal,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import { useGame } from '../context/GameContext';
-import { Theme } from '../types/game';
 import { AIThemeModal } from '../components/AIThemeModal';
+import { Theme } from '../types/game';
 import { colors, gradients } from '../styles/colors';
 
 const { width } = Dimensions.get('window');
-const CARD_WIDTH = (width - 50) / 2;
+const CARD_WIDTH = (width - 48) / 2;
 
 interface ThemeSelectionScreenProps {
     onBack: () => void;
@@ -27,12 +27,12 @@ interface ThemeSelectionScreenProps {
 }
 
 const CATEGORY_TABS = [
-    { id: 'all', label: 'Todos', icon: 'grid-outline' },
-    { id: 'ai', label: 'IA & Mis Temas', icon: 'sparkles-outline' },
+    { id: 'all', label: 'Todos', icon: 'apps-outline' },
+    { id: 'ai', label: 'Mis Temas IA', icon: 'sparkles-outline' },
     { id: 'popular', label: 'Populares', icon: 'flame-outline' },
-    { id: 'entertainment', label: 'Entretenimiento', icon: 'film-outline' },
-    { id: 'culture', label: 'Cultura', icon: 'earth-outline' },
-    { id: 'local', label: 'Caribe', icon: 'sunny-outline' },
+    { id: 'entertainment', label: 'Cultura Pop', icon: 'film-outline' },
+    { id: 'culture', label: 'Sociedad', icon: 'earth-outline' },
+    { id: 'local', label: 'Colombia / Caribe', icon: 'musical-notes-outline' },
 ];
 
 export const ThemeSelectionScreen: React.FC<ThemeSelectionScreenProps> = ({
@@ -40,6 +40,7 @@ export const ThemeSelectionScreen: React.FC<ThemeSelectionScreenProps> = ({
     onNext,
 }) => {
     const {
+        gameState,
         selectTheme,
         allThemes,
         customThemes,
@@ -47,10 +48,13 @@ export const ThemeSelectionScreen: React.FC<ThemeSelectionScreenProps> = ({
         deleteCustomTheme,
     } = useGame();
 
-    const [selectedThemeId, setSelectedThemeId] = useState<string | null>(null);
-    const [selectedTab, setSelectedTab] = useState('all');
-    const [searchQuery, setSearchQuery] = useState('');
-    const [showAIModal, setShowAIModal] = useState(false);
+    const [selectedThemeId, setSelectedThemeId] = useState<string | null>(
+        gameState.config.themeId || null
+    );
+    const [selectedTab, setSelectedTab] = useState<string>('all');
+    const [searchQuery, setSearchQuery] = useState<string>('');
+    const [showAIModal, setShowAIModal] = useState<boolean>(false);
+    const [deletingTheme, setDeletingTheme] = useState<{ id: string; name: string } | null>(null);
 
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const headerAnim = useRef(new Animated.Value(-15)).current;
@@ -104,24 +108,14 @@ export const ThemeSelectionScreen: React.FC<ThemeSelectionScreenProps> = ({
         onNext();
     };
 
-    const handleDeleteCustomTheme = (themeId: string, themeName: string) => {
-        Alert.alert(
-            'Eliminar Temática',
-            `¿Deseas eliminar "${themeName}" de tus temas personalizados?`,
-            [
-                { text: 'Cancelar', style: 'cancel' },
-                {
-                    text: 'Eliminar',
-                    style: 'destructive',
-                    onPress: () => {
-                        deleteCustomTheme(themeId);
-                        if (selectedThemeId === themeId) {
-                            setSelectedThemeId(null);
-                        }
-                    },
-                },
-            ]
-        );
+    const handleConfirmDelete = () => {
+        if (!deletingTheme) return;
+        Vibration.vibrate([0, 50, 50, 100]);
+        deleteCustomTheme(deletingTheme.id);
+        if (selectedThemeId === deletingTheme.id) {
+            setSelectedThemeId(null);
+        }
+        setDeletingTheme(null);
     };
 
     const selectedThemeObj = allThemes.find(t => t.id === selectedThemeId);
@@ -140,27 +134,36 @@ export const ThemeSelectionScreen: React.FC<ThemeSelectionScreenProps> = ({
                     { opacity: fadeAnim, transform: [{ translateY: headerAnim }] },
                 ]}
             >
-                <TouchableOpacity style={styles.backButton} onPress={onBack} activeOpacity={0.7}>
-                    <Ionicons name="arrow-back" size={20} color={colors.textSecondary} />
-                    <Text style={styles.backButtonText}>Atrás</Text>
-                </TouchableOpacity>
+                <View style={styles.topNavRow}>
+                    <TouchableOpacity style={styles.backButton} onPress={onBack} activeOpacity={0.7}>
+                        <Ionicons name="arrow-back" size={20} color={colors.textSecondary} />
+                        <Text style={styles.backButtonText}>Jugadores</Text>
+                    </TouchableOpacity>
 
-                <View style={styles.titleContainer}>
-                    <Text style={styles.title}>Selecciona Temática</Text>
+                    <View style={styles.headerBadge}>
+                        <Text style={styles.headerBadgeText}>
+                            {allThemes.length} Temáticas
+                        </Text>
+                    </View>
+                </View>
+
+                <View style={styles.titleSection}>
+                    <Text style={styles.title}>Elige la Temática</Text>
                     <Text style={styles.subtitle}>
-                        Elige una categoría o crea una nueva con IA
+                        Selecciona el universo de palabras secretas para esta partida
                     </Text>
                 </View>
             </Animated.View>
 
+            {/* Main Scroll Content */}
             <ScrollView
-                style={styles.scrollView}
+                style={styles.scroll}
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
             >
-                {/* HERO: Cyber AI Generator Card */}
+                {/* AI Theme Generator Banner */}
                 <TouchableOpacity
-                    style={styles.aiHeroCard}
+                    style={styles.aiHeroBanner}
                     onPress={() => {
                         Vibration.vibrate(20);
                         setShowAIModal(true);
@@ -249,7 +252,6 @@ export const ThemeSelectionScreen: React.FC<ThemeSelectionScreenProps> = ({
                                     ]}
                                 >
                                     {tab.label}
-                                    {tab.id === 'ai' && customThemes.length > 0 ? ` (${customThemes.length})` : ''}
                                 </Text>
                             </TouchableOpacity>
                         );
@@ -261,16 +263,16 @@ export const ThemeSelectionScreen: React.FC<ThemeSelectionScreenProps> = ({
                     {filteredThemes.length === 0 ? (
                         <View style={styles.emptyState}>
                             <Ionicons name="search-outline" size={40} color={colors.textDisabled} />
-                            <Text style={styles.emptyTitle}>Sin resultados para "{searchQuery}"</Text>
+                            <Text style={styles.emptyTitle}>No encontramos temáticas</Text>
                             <Text style={styles.emptySubtitle}>
-                                Puedes generar este tema automáticamente con la IA
+                                Intenta con otro término o crea una personalizada con IA
                             </Text>
                             <TouchableOpacity
                                 style={styles.emptyCreateBtn}
                                 onPress={() => setShowAIModal(true)}
                             >
-                                <MaterialCommunityIcons name="lightning-bolt" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
-                                <Text style={styles.emptyCreateBtnText}>Generar con IA</Text>
+                                <MaterialCommunityIcons name="robot" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+                                <Text style={styles.emptyCreateText}>Crear con IA</Text>
                             </TouchableOpacity>
                         </View>
                     ) : (
@@ -348,18 +350,25 @@ export const ThemeSelectionScreen: React.FC<ThemeSelectionScreenProps> = ({
                                                     ]}
                                                 />
                                             )}
-
-                                            {isCustom && (
-                                                <TouchableOpacity
-                                                    style={styles.deleteCustomBtn}
-                                                    hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                                                    onPress={() => handleDeleteCustomTheme(theme.id, theme.name)}
-                                                >
-                                                    <Ionicons name="trash-outline" size={14} color={colors.impostor} />
-                                                </TouchableOpacity>
-                                            )}
                                         </LinearGradient>
                                     </TouchableOpacity>
+
+                                    {/* Dedicated Delete Button for Custom Themes */}
+                                    {isCustom && (
+                                        <TouchableOpacity
+                                            style={styles.deleteCustomBtn}
+                                            onPress={() => {
+                                                Vibration.vibrate(15);
+                                                setDeletingTheme({ id: theme.id, name: theme.name });
+                                            }}
+                                            activeOpacity={0.7}
+                                            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                                        >
+                                            <View style={styles.deleteCustomInner}>
+                                                <Ionicons name="trash" size={14} color={colors.impostor} />
+                                            </View>
+                                        </TouchableOpacity>
+                                    )}
                                 </View>
                             );
                         })
@@ -390,12 +399,61 @@ export const ThemeSelectionScreen: React.FC<ThemeSelectionScreenProps> = ({
                 </View>
             )}
 
-            {/* AI Theme Creator Modal */}
+            {/* AI Theme Modal */}
             <AIThemeModal
                 visible={showAIModal}
                 onClose={() => setShowAIModal(false)}
                 onThemeCreatedAndSelect={handleThemeCreatedByAI}
             />
+
+            {/* Delete Theme Confirmation Modal */}
+            <Modal
+                visible={deletingTheme !== null}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setDeletingTheme(null)}
+            >
+                <View style={styles.deleteModalOverlay}>
+                    <View style={styles.deleteModalCard}>
+                        <LinearGradient
+                            colors={gradients.sheetGlass}
+                            style={styles.deleteModalGradient}
+                        >
+                            <View style={styles.deleteIconCircle}>
+                                <Ionicons name="trash-outline" size={32} color={colors.impostor} />
+                            </View>
+
+                            <Text style={styles.deleteModalTitle}>¿Eliminar Temática?</Text>
+                            <Text style={styles.deleteModalDescription}>
+                                ¿Deseas eliminar permanentemente "{deletingTheme?.name}" de tus temas personalizados de IA?
+                            </Text>
+
+                            <View style={styles.deleteModalActionsRow}>
+                                <TouchableOpacity
+                                    style={styles.cancelDeleteModalBtn}
+                                    onPress={() => setDeletingTheme(null)}
+                                    activeOpacity={0.8}
+                                >
+                                    <Text style={styles.cancelDeleteModalText}>Cancelar</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    style={styles.confirmDeleteModalBtn}
+                                    onPress={handleConfirmDelete}
+                                    activeOpacity={0.85}
+                                >
+                                    <LinearGradient
+                                        colors={['#FF2A55', '#D6133C']}
+                                        style={styles.confirmDeleteModalGradient}
+                                    >
+                                        <Text style={styles.confirmDeleteModalText}>Sí, Eliminar</Text>
+                                    </LinearGradient>
+                                </TouchableOpacity>
+                            </View>
+                        </LinearGradient>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 };
@@ -408,54 +466,73 @@ const styles = StyleSheet.create({
     header: {
         paddingTop: 54,
         paddingHorizontal: 20,
-        paddingBottom: 10,
+        paddingBottom: 12,
+    },
+    topNavRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 14,
     },
     backButton: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 6,
         paddingVertical: 4,
-        marginBottom: 10,
     },
     backButtonText: {
+        color: colors.textSecondary,
         fontSize: 14,
         fontWeight: '700',
-        color: colors.textSecondary,
     },
-    titleContainer: {
-        gap: 2,
+    headerBadge: {
+        backgroundColor: colors.bgGlassHover,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: colors.borderSubtle,
+    },
+    headerBadgeText: {
+        color: colors.cyan,
+        fontSize: 12,
+        fontWeight: '800',
+    },
+    titleSection: {
+        gap: 4,
     },
     title: {
-        fontSize: 24,
+        fontSize: 26,
         fontWeight: '900',
         color: colors.textPrimary,
         letterSpacing: 0.3,
     },
     subtitle: {
-        fontSize: 12,
+        fontSize: 13,
         color: colors.textMuted,
+        lineHeight: 18,
     },
-    scrollView: {
+    scroll: {
         flex: 1,
     },
     scrollContent: {
         paddingHorizontal: 20,
-        paddingBottom: 110,
+        paddingBottom: 100,
     },
-    aiHeroCard: {
+    aiHeroBanner: {
         borderRadius: 20,
         overflow: 'hidden',
         marginBottom: 14,
     },
     aiHeroGradient: {
-        padding: 1.5,
+        padding: 2,
     },
     aiHeroInner: {
-        backgroundColor: colors.bgCard,
-        borderRadius: 18.5,
-        padding: 14,
         flexDirection: 'row',
         alignItems: 'center',
+        backgroundColor: colors.bgCard,
+        borderRadius: 18,
+        padding: 14,
         gap: 12,
     },
     aiHeroIconBox: {
@@ -472,9 +549,9 @@ const styles = StyleSheet.create({
         top: -4,
         right: -4,
         backgroundColor: colors.aiPink,
+        borderRadius: 6,
         paddingHorizontal: 4,
         paddingVertical: 1,
-        borderRadius: 6,
     },
     aiSparkleText: {
         fontSize: 8,
@@ -496,7 +573,7 @@ const styles = StyleSheet.create({
     },
     aiHeroTitle: {
         fontSize: 15,
-        fontWeight: '900',
+        fontWeight: '800',
         color: colors.textPrimary,
     },
     aiHeroSubtitle: {
@@ -569,6 +646,7 @@ const styles = StyleSheet.create({
     },
     themeCardContainer: {
         width: CARD_WIDTH,
+        position: 'relative',
     },
     themeCard: {
         borderRadius: 18,
@@ -650,9 +728,20 @@ const styles = StyleSheet.create({
     },
     deleteCustomBtn: {
         position: 'absolute',
-        bottom: 6,
-        right: 6,
-        padding: 4,
+        bottom: 8,
+        right: 8,
+        zIndex: 30,
+        elevation: 30,
+    },
+    deleteCustomInner: {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        backgroundColor: 'rgba(255, 42, 85, 0.2)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 42, 85, 0.4)',
     },
     emptyState: {
         width: '100%',
@@ -679,10 +768,10 @@ const styles = StyleSheet.create({
         paddingVertical: 10,
         borderRadius: 12,
     },
-    emptyCreateBtnText: {
-        color: '#FFFFFF',
-        fontWeight: '800',
+    emptyCreateText: {
         fontSize: 13,
+        fontWeight: '800',
+        color: '#FFFFFF',
     },
     bottomBar: {
         position: 'absolute',
@@ -690,8 +779,8 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         paddingHorizontal: 20,
-        paddingTop: 14,
-        paddingBottom: 36,
+        paddingTop: 12,
+        paddingBottom: 34,
         backgroundColor: 'rgba(7, 8, 12, 0.95)',
         borderTopWidth: 1,
         borderTopColor: colors.borderSubtle,
@@ -710,5 +799,83 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '900',
         color: '#FFFFFF',
+        letterSpacing: 0.3,
+    },
+    deleteModalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.88)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 24,
+    },
+    deleteModalCard: {
+        width: '100%',
+        maxWidth: 340,
+        borderRadius: 24,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: colors.borderLight,
+    },
+    deleteModalGradient: {
+        padding: 24,
+        alignItems: 'center',
+    },
+    deleteIconCircle: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        backgroundColor: 'rgba(255, 42, 85, 0.15)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 14,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 42, 85, 0.3)',
+    },
+    deleteModalTitle: {
+        fontSize: 18,
+        fontWeight: '900',
+        color: colors.textPrimary,
+        marginBottom: 8,
+    },
+    deleteModalDescription: {
+        fontSize: 13,
+        color: colors.textSecondary,
+        textAlign: 'center',
+        lineHeight: 18,
+        marginBottom: 20,
+    },
+    deleteModalActionsRow: {
+        flexDirection: 'row',
+        gap: 10,
+        width: '100%',
+    },
+    cancelDeleteModalBtn: {
+        flex: 1,
+        backgroundColor: colors.bgGlassHover,
+        paddingVertical: 14,
+        borderRadius: 14,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: colors.borderLight,
+    },
+    cancelDeleteModalText: {
+        color: colors.textSecondary,
+        fontWeight: '800',
+        fontSize: 14,
+    },
+    confirmDeleteModalBtn: {
+        flex: 1.4,
+        borderRadius: 14,
+        overflow: 'hidden',
+    },
+    confirmDeleteModalGradient: {
+        paddingVertical: 14,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    confirmDeleteModalText: {
+        color: '#FFFFFF',
+        fontWeight: '900',
+        fontSize: 14,
     },
 });
