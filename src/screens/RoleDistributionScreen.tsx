@@ -25,6 +25,14 @@ interface RoleDistributionScreenProps {
 
 type CardState = 'waiting' | 'revealing' | 'revealed';
 
+// Duracion del gesto de mantener presionado para revelar.
+const HOLD_DURATION_MS = 700;
+// Tras revelar, el boton de avanzar queda bloqueado este tiempo. El boton de
+// avanzar se monta en la misma posicion que el de mantener presionado, asi que
+// sin este bloqueo el dedo que acaba de completar el hold lo pulsa al soltar y
+// salta al jugador siguiente antes de poder leer la palabra.
+const ADVANCE_LOCK_MS = 1600;
+
 export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
     onBack,
     onComplete,
@@ -39,6 +47,9 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
     } = useGame();
 
     const [showExitModal, setShowExitModal] = useState<boolean>(false);
+    const [canAdvance, setCanAdvance] = useState<boolean>(false);
+    const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const pulseLoop = useRef<Animated.CompositeAnimation | null>(null);
 
     const currentThemeData = allThemes.find(t => t.id === gameState.config.themeId);
     const [cardState, setCardState] = useState<CardState>('waiting');
@@ -58,24 +69,41 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
     const progress = ((gameState.currentPlayerIndex + 1) / gameState.players.length) * 100;
 
     useEffect(() => {
-        Animated.parallel([
-            Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
-            Animated.loop(
-                Animated.sequence([
-                    Animated.timing(pulseAnim, { toValue: 1.05, duration: 900, useNativeDriver: true }),
-                    Animated.timing(pulseAnim, { toValue: 0.96, duration: 900, useNativeDriver: true }),
-                ])
-            ),
-        ]).start();
+        Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
+
+        pulseLoop.current?.stop();
+        pulseAnim.setValue(1);
+        pulseLoop.current = Animated.loop(
+            Animated.sequence([
+                Animated.timing(pulseAnim, { toValue: 1.05, duration: 900, useNativeDriver: true }),
+                Animated.timing(pulseAnim, { toValue: 0.96, duration: 900, useNativeDriver: true }),
+            ])
+        );
+        pulseLoop.current.start();
+
+        return () => {
+            pulseLoop.current?.stop();
+        };
     }, [gameState.currentPlayerIndex]);
 
     useEffect(() => {
         setCardState('waiting');
+        setCanAdvance(false);
+        if (advanceTimer.current) {
+            clearTimeout(advanceTimer.current);
+            advanceTimer.current = null;
+        }
         cardOpacity.setValue(1);
         revealOpacity.setValue(0);
         cardScale.setValue(1);
         holdProgress.setValue(0);
     }, [gameState.currentPlayerIndex]);
+
+    useEffect(() => () => {
+        if (advanceTimer.current) {
+            clearTimeout(advanceTimer.current);
+        }
+    }, []);
 
     const startHold = () => {
         setCardState('revealing');
@@ -83,7 +111,7 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
 
         Animated.timing(holdProgress, {
             toValue: 1,
-            duration: 500,
+            duration: HOLD_DURATION_MS,
             useNativeDriver: false,
         }).start(({ finished }) => {
             if (finished) {
@@ -103,13 +131,22 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
     const revealCard = () => {
         setCardState('revealed');
 
+        setCanAdvance(false);
+        if (advanceTimer.current) {
+            clearTimeout(advanceTimer.current);
+        }
+        advanceTimer.current = setTimeout(() => {
+            setCanAdvance(true);
+            advanceTimer.current = null;
+        }, ADVANCE_LOCK_MS);
+
         Animated.parallel([
-            Animated.timing(cardOpacity, { toValue: 0, duration: 180, useNativeDriver: true }),
-            Animated.timing(cardScale, { toValue: 0.94, duration: 180, useNativeDriver: true }),
+            Animated.timing(cardOpacity, { toValue: 0, duration: 260, useNativeDriver: true }),
+            Animated.timing(cardScale, { toValue: 0.94, duration: 260, useNativeDriver: true }),
         ]).start(() => {
             Animated.parallel([
-                Animated.timing(revealOpacity, { toValue: 1, duration: 250, useNativeDriver: true }),
-                Animated.spring(cardScale, { toValue: 1, friction: 6, tension: 60, useNativeDriver: true }),
+                Animated.timing(revealOpacity, { toValue: 1, duration: 420, useNativeDriver: true }),
+                Animated.spring(cardScale, { toValue: 1, friction: 7, tension: 50, useNativeDriver: true }),
             ]).start();
         });
 
@@ -131,6 +168,7 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
     };
 
     const handleNext = () => {
+        if (!canAdvance) return;
         Vibration.vibrate(20);
         const isLastPlayer = gameState.currentPlayerIndex === gameState.players.length - 1;
         if (isLastPlayer) {
@@ -427,20 +465,30 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
                         </TouchableOpacity>
                     ) : (
                         <TouchableOpacity
-                            style={styles.nextPlayerBtn}
+                            style={[styles.nextPlayerBtn, !canAdvance && styles.nextPlayerBtnLocked]}
                             onPress={handleNext}
+                            disabled={!canAdvance}
                             activeOpacity={0.85}
                         >
                             <LinearGradient
-                                colors={['#7952FF', '#9D7DFF']}
+                                colors={canAdvance ? ['#7952FF', '#9D7DFF'] : ['#2A2A3E', '#22223A']}
                                 style={styles.nextPlayerGradient}
                             >
-                                <Text style={styles.nextPlayerText}>
-                                    {gameState.currentPlayerIndex === gameState.players.length - 1
-                                        ? '¡Comenzar Debate!'
-                                        : 'Siguiente Jugador'}
-                                </Text>
-                                <Ionicons name="arrow-forward" size={18} color="#FFFFFF" style={{ marginLeft: 8 }} />
+                                {canAdvance ? (
+                                    <>
+                                        <Text style={styles.nextPlayerText}>
+                                            {gameState.currentPlayerIndex === gameState.players.length - 1
+                                                ? '¡Comenzar Debate!'
+                                                : 'Siguiente Jugador'}
+                                        </Text>
+                                        <Ionicons name="arrow-forward" size={18} color="#FFFFFF" style={{ marginLeft: 8 }} />
+                                    </>
+                                ) : (
+                                    <>
+                                        <Ionicons name="eye-outline" size={18} color={colors.textSecondary} style={{ marginRight: 8 }} />
+                                        <Text style={styles.nextPlayerTextLocked}>Memoriza tu palabra...</Text>
+                                    </>
+                                )}
                             </LinearGradient>
                         </TouchableOpacity>
                     )}
@@ -726,6 +774,15 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '900',
         color: '#FFFFFF',
+    },
+    nextPlayerBtnLocked: {
+        borderWidth: 1,
+        borderColor: colors.borderSubtle,
+    },
+    nextPlayerTextLocked: {
+        fontSize: 15,
+        fontWeight: '800',
+        color: colors.textSecondary,
     },
     modalOverlay: {
         flex: 1,
