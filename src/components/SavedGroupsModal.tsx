@@ -47,6 +47,9 @@ export const SavedGroupsModal: React.FC<SavedGroupsModalProps> = ({
     const [editPlayers, setEditPlayers] = useState<string[]>([]);
     const [newPlayerInput, setNewPlayerInput] = useState('');
 
+    // Inline Deletion Confirmation State
+    const [deletingGroupId, setDeletingGroupId] = useState<string | null>(null);
+
     const handleStartEdit = (group: PlayerGroup) => {
         Vibration.vibrate(15);
         setEditingGroup(group);
@@ -54,6 +57,7 @@ export const SavedGroupsModal: React.FC<SavedGroupsModalProps> = ({
         setEditPlayers([...group.players]);
         setNewPlayerInput('');
         setIsCreating(false);
+        setDeletingGroupId(null);
     };
 
     const handleCancelEdit = () => {
@@ -132,9 +136,19 @@ export const SavedGroupsModal: React.FC<SavedGroupsModalProps> = ({
         setIsCreating(false);
     };
 
+    const handleExecuteDelete = (groupId: string) => {
+        Vibration.vibrate([0, 50, 50, 100]);
+        onDeleteGroup(groupId);
+        setDeletingGroupId(null);
+        if (editingGroup?.id === groupId) {
+            handleCancelEdit();
+        }
+    };
+
     const handleCloseModal = () => {
         handleCancelEdit();
         setIsCreating(false);
+        setDeletingGroupId(null);
         onClose();
     };
 
@@ -283,6 +297,38 @@ export const SavedGroupsModal: React.FC<SavedGroupsModalProps> = ({
                                     </View>
                                 </View>
 
+                                {/* Delete from Edit Screen Confirmation */}
+                                {deletingGroupId === editingGroup.id ? (
+                                    <View style={styles.confirmDeleteCard}>
+                                        <Text style={styles.confirmDeleteText}>
+                                            ¿Seguro que deseas eliminar permanentemente esta plantilla?
+                                        </Text>
+                                        <View style={styles.confirmDeleteBtnsRow}>
+                                            <TouchableOpacity
+                                                style={styles.cancelDeleteBtn}
+                                                onPress={() => setDeletingGroupId(null)}
+                                            >
+                                                <Text style={styles.cancelDeleteText}>Cancelar</Text>
+                                            </TouchableOpacity>
+                                            <TouchableOpacity
+                                                style={styles.actionDeleteBtn}
+                                                onPress={() => handleExecuteDelete(editingGroup.id)}
+                                            >
+                                                <Text style={styles.actionDeleteText}>Sí, Eliminar</Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                    </View>
+                                ) : (
+                                    <TouchableOpacity
+                                        style={styles.deleteInEditBtn}
+                                        onPress={() => setDeletingGroupId(editingGroup.id)}
+                                        activeOpacity={0.8}
+                                    >
+                                        <Ionicons name="trash-outline" size={16} color={colors.impostor} style={{ marginRight: 6 }} />
+                                        <Text style={styles.deleteInEditText}>Eliminar esta Plantilla</Text>
+                                    </TouchableOpacity>
+                                )}
+
                                 {/* Edit Actions Bottom */}
                                 <View style={styles.editActionRow}>
                                     <TouchableOpacity
@@ -369,78 +415,99 @@ export const SavedGroupsModal: React.FC<SavedGroupsModalProps> = ({
                                             <Text style={styles.emptyText}>No tienes grupos guardados aún.</Text>
                                         </View>
                                     ) : (
-                                        savedGroups.map(group => (
-                                            <View key={group.id} style={styles.groupCard}>
-                                                <LinearGradient
-                                                    colors={gradients.cardGlass}
-                                                    style={styles.groupGradient}
-                                                >
-                                                    {/* Card Header with Name & Count */}
-                                                    <View style={styles.groupHeader}>
-                                                        <Text style={styles.groupName}>{group.name}</Text>
-                                                        <View style={styles.groupBadge}>
-                                                            <Text style={styles.groupBadgeText}>
-                                                                {group.players.length} jugadores
-                                                            </Text>
+                                        savedGroups.map(group => {
+                                            const isConfirmingDelete = deletingGroupId === group.id;
+
+                                            return (
+                                                <View key={group.id} style={styles.groupCard}>
+                                                    <LinearGradient
+                                                        colors={gradients.cardGlass}
+                                                        style={styles.groupGradient}
+                                                    >
+                                                        {/* Card Header with Name & Count */}
+                                                        <View style={styles.groupHeader}>
+                                                            <Text style={styles.groupName}>{group.name}</Text>
+                                                            <View style={styles.groupBadge}>
+                                                                <Text style={styles.groupBadgeText}>
+                                                                    {group.players.length} jugadores
+                                                                </Text>
+                                                            </View>
                                                         </View>
-                                                    </View>
 
-                                                    {/* Player chips preview */}
-                                                    <Text style={styles.groupPlayersPreview} numberOfLines={2}>
-                                                        {group.players.join(' · ')}
-                                                    </Text>
+                                                        {/* Player chips preview */}
+                                                        <Text style={styles.groupPlayersPreview} numberOfLines={2}>
+                                                            {group.players.join(' · ')}
+                                                        </Text>
 
-                                                    {/* Card Action Buttons (Load, Edit, Delete) */}
-                                                    <View style={styles.groupActions}>
-                                                        <TouchableOpacity
-                                                            style={styles.loadActionBtn}
-                                                            onPress={() => {
-                                                                Vibration.vibrate(20);
-                                                                onSelectGroup(group);
-                                                                onClose();
-                                                            }}
-                                                            activeOpacity={0.8}
-                                                        >
-                                                            <LinearGradient
-                                                                colors={['#7952FF', '#9D7DFF']}
-                                                                style={styles.loadActionGradient}
-                                                            >
-                                                                <Ionicons name="play" size={13} color="#FFFFFF" style={{ marginRight: 4 }} />
-                                                                <Text style={styles.loadActionText}>Cargar</Text>
-                                                            </LinearGradient>
-                                                        </TouchableOpacity>
+                                                        {/* Inline Delete Confirmation Mode */}
+                                                        {isConfirmingDelete ? (
+                                                            <View style={styles.cardDeleteConfirmBox}>
+                                                                <Text style={styles.cardDeleteConfirmTitle}>
+                                                                    ¿Eliminar "{group.name}"?
+                                                                </Text>
+                                                                <View style={styles.cardDeleteBtnsRow}>
+                                                                    <TouchableOpacity
+                                                                        style={styles.cancelDeleteSmallBtn}
+                                                                        onPress={() => setDeletingGroupId(null)}
+                                                                        activeOpacity={0.7}
+                                                                    >
+                                                                        <Text style={styles.cancelDeleteSmallText}>Cancelar</Text>
+                                                                    </TouchableOpacity>
+                                                                    <TouchableOpacity
+                                                                        style={styles.confirmDeleteSmallBtn}
+                                                                        onPress={() => handleExecuteDelete(group.id)}
+                                                                        activeOpacity={0.8}
+                                                                    >
+                                                                        <Text style={styles.confirmDeleteSmallText}>Eliminar</Text>
+                                                                    </TouchableOpacity>
+                                                                </View>
+                                                            </View>
+                                                        ) : (
+                                                            /* Standard Actions: Load, Edit, Delete */
+                                                            <View style={styles.groupActions}>
+                                                                <TouchableOpacity
+                                                                    style={styles.loadActionBtn}
+                                                                    onPress={() => {
+                                                                        Vibration.vibrate(20);
+                                                                        onSelectGroup(group);
+                                                                        onClose();
+                                                                    }}
+                                                                    activeOpacity={0.8}
+                                                                >
+                                                                    <LinearGradient
+                                                                        colors={['#7952FF', '#9D7DFF']}
+                                                                        style={styles.loadActionGradient}
+                                                                    >
+                                                                        <Ionicons name="play" size={13} color="#FFFFFF" style={{ marginRight: 4 }} />
+                                                                        <Text style={styles.loadActionText}>Cargar</Text>
+                                                                    </LinearGradient>
+                                                                </TouchableOpacity>
 
-                                                        <View style={styles.groupTools}>
-                                                            <TouchableOpacity
-                                                                style={styles.editGroupBtn}
-                                                                onPress={() => handleStartEdit(group)}
-                                                                activeOpacity={0.7}
-                                                            >
-                                                                <Ionicons name="create-outline" size={16} color={colors.cyan} />
-                                                                <Text style={styles.editGroupBtnText}>Editar</Text>
-                                                            </TouchableOpacity>
+                                                                <View style={styles.groupTools}>
+                                                                    <TouchableOpacity
+                                                                        style={styles.editGroupBtn}
+                                                                        onPress={() => handleStartEdit(group)}
+                                                                        activeOpacity={0.7}
+                                                                    >
+                                                                        <Ionicons name="create-outline" size={15} color={colors.cyan} />
+                                                                        <Text style={styles.editGroupBtnText}>Editar</Text>
+                                                                    </TouchableOpacity>
 
-                                                            <TouchableOpacity
-                                                                style={styles.deleteGroupBtn}
-                                                                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                                                                onPress={() => {
-                                                                    Alert.alert(
-                                                                        'Eliminar Plantilla',
-                                                                        `¿Deseas eliminar "${group.name}"?`,
-                                                                        [
-                                                                            { text: 'Cancelar', style: 'cancel' },
-                                                                            { text: 'Eliminar', style: 'destructive', onPress: () => onDeleteGroup(group.id) },
-                                                                        ]
-                                                                    );
-                                                                }}
-                                                            >
-                                                                <Ionicons name="trash-outline" size={16} color={colors.impostor} />
-                                                            </TouchableOpacity>
-                                                        </View>
-                                                    </View>
-                                                </LinearGradient>
-                                            </View>
-                                        ))
+                                                                    <TouchableOpacity
+                                                                        style={styles.deleteGroupBtn}
+                                                                        onPress={() => setDeletingGroupId(group.id)}
+                                                                        activeOpacity={0.7}
+                                                                    >
+                                                                        <Ionicons name="trash-outline" size={15} color={colors.impostor} />
+                                                                        <Text style={styles.deleteGroupBtnText}>Borrar</Text>
+                                                                    </TouchableOpacity>
+                                                                </View>
+                                                            </View>
+                                                        )}
+                                                    </LinearGradient>
+                                                </View>
+                                            );
+                                        })
                                     )}
                                 </ScrollView>
                             </>
@@ -674,7 +741,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: 14,
-        paddingVertical: 7,
+        paddingVertical: 8,
     },
     loadActionText: {
         fontSize: 12,
@@ -684,14 +751,14 @@ const styles = StyleSheet.create({
     groupTools: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 12,
+        gap: 8,
     },
     editGroupBtn: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: colors.bgGlassHover,
         paddingHorizontal: 10,
-        paddingVertical: 6,
+        paddingVertical: 7,
         borderRadius: 8,
         gap: 4,
         borderWidth: 1,
@@ -703,7 +770,63 @@ const styles = StyleSheet.create({
         fontWeight: '700',
     },
     deleteGroupBtn: {
-        padding: 4,
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255, 42, 85, 0.1)',
+        paddingHorizontal: 10,
+        paddingVertical: 7,
+        borderRadius: 8,
+        gap: 4,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 42, 85, 0.3)',
+    },
+    deleteGroupBtnText: {
+        color: colors.impostor,
+        fontSize: 12,
+        fontWeight: '700',
+    },
+    cardDeleteConfirmBox: {
+        marginTop: 12,
+        paddingTop: 10,
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(255, 42, 85, 0.3)',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    cardDeleteConfirmTitle: {
+        fontSize: 12,
+        fontWeight: '800',
+        color: colors.impostor,
+        flex: 1,
+    },
+    cardDeleteBtnsRow: {
+        flexDirection: 'row',
+        gap: 8,
+    },
+    cancelDeleteSmallBtn: {
+        backgroundColor: colors.bgGlassHover,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: colors.borderLight,
+    },
+    cancelDeleteSmallText: {
+        fontSize: 12,
+        color: colors.textSecondary,
+        fontWeight: '700',
+    },
+    confirmDeleteSmallBtn: {
+        backgroundColor: colors.impostor,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 8,
+    },
+    confirmDeleteSmallText: {
+        fontSize: 12,
+        color: '#FFFFFF',
+        fontWeight: '800',
     },
 
     // Edit View Styles
@@ -809,12 +932,13 @@ const styles = StyleSheet.create({
     },
     addPlayerInput: {
         flex: 1,
-        height: 42,
+        height: 44,
         backgroundColor: colors.bgDeep,
         borderRadius: 12,
         paddingHorizontal: 12,
         color: colors.textPrimary,
         fontSize: 14,
+        fontWeight: '600',
         borderWidth: 1,
         borderColor: colors.borderLight,
     },
@@ -827,9 +951,68 @@ const styles = StyleSheet.create({
         gap: 4,
     },
     addPlayerBtnDisabled: {
-        opacity: 0.4,
+        opacity: 0.5,
     },
     addPlayerBtnText: {
+        color: '#FFFFFF',
+        fontWeight: '800',
+        fontSize: 13,
+    },
+    deleteInEditBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'rgba(255, 42, 85, 0.1)',
+        paddingVertical: 12,
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 42, 85, 0.3)',
+    },
+    deleteInEditText: {
+        color: colors.impostor,
+        fontSize: 13,
+        fontWeight: '800',
+    },
+    confirmDeleteCard: {
+        backgroundColor: 'rgba(255, 42, 85, 0.12)',
+        borderRadius: 16,
+        padding: 14,
+        borderWidth: 1,
+        borderColor: colors.impostor,
+        gap: 10,
+    },
+    confirmDeleteText: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: colors.textPrimary,
+        textAlign: 'center',
+    },
+    confirmDeleteBtnsRow: {
+        flexDirection: 'row',
+        gap: 10,
+    },
+    cancelDeleteBtn: {
+        flex: 1,
+        backgroundColor: colors.bgGlassHover,
+        paddingVertical: 10,
+        borderRadius: 10,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: colors.borderLight,
+    },
+    cancelDeleteText: {
+        color: colors.textSecondary,
+        fontWeight: '700',
+        fontSize: 13,
+    },
+    actionDeleteBtn: {
+        flex: 1,
+        backgroundColor: colors.impostor,
+        paddingVertical: 10,
+        borderRadius: 10,
+        alignItems: 'center',
+    },
+    actionDeleteText: {
         color: '#FFFFFF',
         fontWeight: '800',
         fontSize: 13,
@@ -845,17 +1028,16 @@ const styles = StyleSheet.create({
         paddingVertical: 14,
         borderRadius: 14,
         alignItems: 'center',
-        justifyContent: 'center',
         borderWidth: 1,
         borderColor: colors.borderLight,
     },
     cancelEditBtnText: {
         color: colors.textSecondary,
+        fontWeight: '800',
         fontSize: 14,
-        fontWeight: '700',
     },
     saveEditBtn: {
-        flex: 1.5,
+        flex: 1.6,
         borderRadius: 14,
         overflow: 'hidden',
     },
@@ -867,7 +1049,7 @@ const styles = StyleSheet.create({
     },
     saveEditBtnText: {
         color: '#07080C',
-        fontSize: 14,
         fontWeight: '900',
+        fontSize: 14,
     },
 });
