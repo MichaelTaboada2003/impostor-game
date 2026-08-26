@@ -11,11 +11,27 @@ import {
     Vibration,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Updates from 'expo-updates';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import { useGame } from '../context/GameContext';
 import { colors, gradients } from '../styles/colors';
 
 const { width } = Dimensions.get('window');
+
+// Etiqueta de version del badge de cabecera. Al runtimeVersion (que con la policy
+// "appVersion" es la version de app.json) se le anade un identificador corto del
+// bundle en ejecucion: cambia con cada actualizacion OTA aplicada, asi que sirve
+// para comprobar de un vistazo si la actualizacion entro de verdad.
+const BUILD_LABEL = (() => {
+    try {
+        const version = Updates.runtimeVersion || '1.0.0';
+        if (__DEV__) return `v${version} · dev`;
+        const id = (Updates.updateId || '').replace(/-/g, '');
+        return id ? `v${version} · ${id.slice(0, 6)}` : `v${version} · base`;
+    } catch {
+        return 'v1.0.0';
+    }
+})();
 
 interface SetupScreenProps {
     onNext: () => void;
@@ -116,7 +132,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onNext }) => {
                         <Text style={styles.appBadgeTitle}>IMPOSTOR GAME</Text>
                     </View>
                     <View style={styles.versionTag}>
-                        <Text style={styles.versionText}>PRO</Text>
+                        <Text style={styles.versionText}>{BUILD_LABEL}</Text>
                     </View>
                 </View>
                 <Text style={styles.mainTitle}>Configura la Partida</Text>
@@ -434,7 +450,7 @@ const styles = StyleSheet.create({
         fontSize: 10,
         fontWeight: '900',
         color: colors.cyan,
-        letterSpacing: 1,
+        letterSpacing: 0.5,
     },
     mainTitle: {
         fontSize: 26,
