@@ -43,14 +43,14 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   render() {
     if (this.state.hasError) {
       return (
-        <SafeAreaView style={styles.errorContainer}>
+        <View style={styles.errorContainer}>
           <Text style={styles.errorEmoji}>⚠️</Text>
           <Text style={styles.errorTitle}>Algo no salió como esperábamos</Text>
           <Text style={styles.errorSubtitle}>{this.state.errorText}</Text>
           <TouchableOpacity style={styles.errorButton} onPress={this.handleRestart} activeOpacity={0.8}>
             <Text style={styles.errorButtonText}>Reiniciar Aplicación</Text>
           </TouchableOpacity>
-        </SafeAreaView>
+        </View>
       );
     }
     return this.props.children;
