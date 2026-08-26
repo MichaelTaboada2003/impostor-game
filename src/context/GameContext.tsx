@@ -16,7 +16,7 @@ interface GameContextType {
     setRoundTimerSeconds: (seconds: number) => void;
     setPlayerName: (index: number, name: string) => void;
     setPlayerNamesList: (names: string[]) => void;
-    selectTheme: (themeId: string) => void;
+    selectTheme: (themeIdOrTheme: string | Theme, overrideCustomThemes?: Theme[]) => void;
     replayCurrentTheme: () => void;
     markPlayerAsSeen: (playerId: number) => void;
     nextPlayer: () => void;
@@ -24,8 +24,9 @@ interface GameContextType {
     setPhase: (phase: GameState['phase']) => void;
     resetGame: () => void;
     getCurrentPlayer: () => Player | null;
-    addCustomTheme: (theme: Theme) => Promise<void>;
+    addCustomTheme: (theme: Theme) => Promise<Theme[]>;
     deleteCustomTheme: (themeId: string) => Promise<void>;
+
     saveCurrentGroup: (name: string) => Promise<void>;
     loadGroup: (group: PlayerGroup) => void;
     updateGroup: (group: PlayerGroup) => Promise<void>;
@@ -172,8 +173,26 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
     };
 
-    const selectTheme = (themeId: string) => {
-        const entry = getRandomWordEntry(themeId, customThemes);
+    const selectTheme = (themeIdOrTheme: string | Theme, overrideCustomThemes?: Theme[]) => {
+        let themeObj: Theme | undefined;
+        let themeId: string;
+
+        if (typeof themeIdOrTheme === 'object' && themeIdOrTheme !== null) {
+            themeObj = themeIdOrTheme;
+            themeId = themeObj.id;
+        } else {
+            themeId = themeIdOrTheme;
+            const all = [...defaultThemes, ...(overrideCustomThemes || customThemes)];
+            themeObj = all.find(t => t.id === themeId);
+        }
+
+        if (!themeObj || !themeObj.words || themeObj.words.length === 0) {
+            themeObj = defaultThemes[0];
+            themeId = themeObj.id;
+        }
+
+        const entry = getRandomWordEntry(themeObj);
+
         const { numberOfPlayers, numberOfImpostors, gameMode } = gameState.config;
 
         const impostorIndices: Set<number> = new Set();
@@ -220,6 +239,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             votingHistory: [],
         }));
     };
+
 
 
     const replayCurrentTheme = () => {
@@ -281,7 +301,9 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const addCustomTheme = async (theme: Theme) => {
         const updated = await storageService.saveCustomTheme(theme);
         setCustomThemes(updated);
+        return updated;
     };
+
 
     const deleteCustomTheme = async (themeId: string) => {
         const updated = await storageService.deleteCustomTheme(themeId);

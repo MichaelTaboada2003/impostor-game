@@ -377,8 +377,9 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
                                         {isClassicImpostor ? 'TU SITUACIÓN' : 'TU PALABRA SECRETA'}
                                     </Text>
                                     <Text style={styles.wordDisplayText}>
-                                        {currentPlayer.word}
+                                        {currentPlayer.word || (isClassicImpostor ? '???' : (gameState.secretWord || 'Palabra'))}
                                     </Text>
+
                                 </View>
 
                                 {isClassicImpostor ? (

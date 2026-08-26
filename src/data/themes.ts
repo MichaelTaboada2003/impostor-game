@@ -532,14 +532,20 @@ export const themes: Theme[] = [
     }
 ];
 
-export const getRandomWordEntry = (themeId: string, customThemes?: Theme[]): WordEntry => {
-    const all = customThemes ? [...themes, ...customThemes] : themes;
-    const theme = all.find(t => t.id === themeId);
-    if (!theme || theme.words.length === 0) return { word: '', hint: '' };
+export const getRandomWordEntry = (themeIdOrTheme: string | Theme, customThemes?: Theme[]): WordEntry => {
+    let theme: Theme | undefined;
+    if (typeof themeIdOrTheme === 'object' && themeIdOrTheme !== null) {
+        theme = themeIdOrTheme;
+    } else {
+        const all = customThemes ? [...themes, ...customThemes] : themes;
+        theme = all.find(t => t.id === themeIdOrTheme);
+    }
+    if (!theme || !theme.words || theme.words.length === 0) return { word: '', hint: '' };
     return theme.words[Math.floor(Math.random() * theme.words.length)];
 };
 
-export const getRandomWord = (themeId: string, customThemes?: Theme[]): string => {
-    return getRandomWordEntry(themeId, customThemes).word;
+export const getRandomWord = (themeIdOrTheme: string | Theme, customThemes?: Theme[]): string => {
+    return getRandomWordEntry(themeIdOrTheme, customThemes).word;
 };
+
 

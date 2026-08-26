@@ -96,17 +96,19 @@ export const ThemeSelectionScreen: React.FC<ThemeSelectionScreenProps> = ({
 
     const handleConfirm = () => {
         if (selectedThemeId) {
-            selectTheme(selectedThemeId);
+            const themeObj = allThemes.find(t => t.id === selectedThemeId);
+            selectTheme(themeObj || selectedThemeId);
             onNext();
         }
     };
 
-    const handleThemeCreatedByAI = (newTheme: Theme) => {
-        addCustomTheme(newTheme);
+    const handleThemeCreatedByAI = async (newTheme: Theme) => {
+        const updated = await addCustomTheme(newTheme);
         setSelectedThemeId(newTheme.id);
-        selectTheme(newTheme.id);
+        selectTheme(newTheme, updated);
         onNext();
     };
+
 
     const handleConfirmDelete = () => {
         if (!deletingTheme) return;
