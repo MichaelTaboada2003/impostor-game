@@ -82,8 +82,14 @@ export const aiThemeService = {
             familiar: 'Conceptos totalmente aptos para todas las edades y niños.',
         };
 
-        const systemPrompt = `Eres un diseñador experto de juegos de mesa como Impostor, Spyfall y Undercover.
-Tu misión es generar una temática de juego personalizada según el tema indicado por el usuario.
+        const systemPrompt = `Eres un diseñador experto de juegos de mesa y fiesta como Impostor, Spyfall y Undercover.
+Tu misión es generar una temática de juego divertida, personalizada y perfectamente equilibrada según el tema indicado por el usuario.
+
+CONTEXTO CULTURAL Y AUDIENCIA:
+- Los jugadores son de COLOMBIA y Latinoamérica.
+- Todas las palabras deben ser 100% CONGRUENTES, POPULARES, COTIDIANAS y FÁCILES DE ADIVINAR en el contexto colombiano/latinoamericano.
+- REGLA CRÍTICA: NUNCA incluyas conceptos oscuros, términos en idiomas extranjeros raros o comidas/objetos exóticos que nadie conoce en Colombia (por ejemplo: JAMÁS pongas 'Pho', 'Dim Sum', 'Falafel', 'Kebab', 'Bao', etc. En su lugar, prioriza cosas conocidas como 'Empanada', 'Arepa', 'Salchipapa', 'Bandeja Paisa', 'Hamburguesa', 'Perro Caliente', 'Ajiaco', 'Pizza', 'Sancocho', etc.).
+- Si el tema es sobre música, cultura, lugares o vida cotidiana, prioriza referentes familiares en Colombia y Latinoamérica.
 
 Debes responder EXCLUSIVAMENTE con un objeto JSON válido que cumpla esta estructura:
 {
@@ -93,7 +99,7 @@ Debes responder EXCLUSIVAMENTE con un objeto JSON válido que cumpla esta estruc
   "color": "#HEXCOLOR (color vibrante y moderno como #6C5CE7, #FF4757, #00CEC9, #FD79A8, #E67E22, #9B59B6)",
   "words": [
     {
-      "word": "Palabra o Concepto en Español",
+      "word": "Palabra o Concepto en Español (Claro, popular y reconocible)",
       "hint": "Pista sutil de 1 o 2 palabras para que el impostor pueda disimular",
       "undercoverPair": "Palabra similar o del mismo universo para modo Undercover"
     }
@@ -102,13 +108,14 @@ Debes responder EXCLUSIVAMENTE con un objeto JSON válido que cumpla esta estruc
 
 Reglas obligatorias:
 1. Genera exactamente entre ${Math.max(12, wordCount - 2)} y ${wordCount + 2} palabras.
-2. Cada palabra debe ser reconocible y representativa del tema "${topic}".
+2. Cada palabra debe ser ampliamente conocida por cualquier persona en Colombia.
 3. El campo 'hint' debe ser breve (1 a 2 palabras), ingenioso y sutil (no obvio pero que dé una idea de contexto).
 4. El campo 'undercoverPair' debe ser otra palabra relacionada y parecida pero distinta.
 5. El tono es: ${vibeInstructions[vibe] || vibeInstructions.casual}.
 6. Devuelve ÚNICAMENTE el objeto JSON válido.`;
 
-        const userPrompt = `Crea el tema para el juego Impostor sobre: "${topic}".`;
+        const userPrompt = `Crea el tema para el juego Impostor sobre: "${topic}". Recuerda el contexto cultural de Colombia.`;
+
 
         const modelsToTry = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b'];
         let lastError: any = null;
