@@ -85,25 +85,37 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Cargar temas personalizados y grupos guardados al iniciar
     useEffect(() => {
         const loadInitialData = async () => {
-            const [loadedThemes, loadedGroups, recentNames] = await Promise.all([
-                storageService.getCustomThemes(),
-                storageService.getSavedGroups(),
-                storageService.getRecentNames(),
-            ]);
-            setCustomThemes(loadedThemes);
-            setSavedGroups(loadedGroups);
-            if (recentNames && recentNames.length >= 3) {
-                setPlayerNames(recentNames);
-                setGameState(prev => ({
-                    ...prev,
-                    config: { ...prev.config, numberOfPlayers: recentNames.length }
-                }));
+            try {
+                const [loadedThemes, loadedGroups, recentNames] = await Promise.all([
+                    storageService.getCustomThemes(),
+                    storageService.getSavedGroups(),
+                    storageService.getRecentNames(),
+                ]);
+                if (Array.isArray(loadedThemes)) {
+                    setCustomThemes(loadedThemes);
+                }
+                if (Array.isArray(loadedGroups)) {
+                    setSavedGroups(loadedGroups);
+                }
+                if (recentNames && Array.isArray(recentNames) && recentNames.length >= 3) {
+                    const validNames = recentNames.map(n => String(n || ''));
+                    setPlayerNames(validNames);
+                    setGameState(prev => ({
+                        ...prev,
+                        config: { ...prev.config, numberOfPlayers: Math.min(16, Math.max(3, validNames.length)) }
+                    }));
+                }
+            } catch (err) {
+                console.error('Error during GameContext loadInitialData:', err);
             }
         };
         loadInitialData();
     }, []);
 
-    const allThemes = [...defaultThemes, ...customThemes];
+    const allThemes = Array.isArray(customThemes)
+        ? [...defaultThemes, ...customThemes]
+        : defaultThemes;
+
 
     const setNumberOfPlayers = (num: number) => {
         setGameState(prev => ({
