@@ -53,6 +53,8 @@ export interface GameState {
     undercoverWord?: string;
     currentPlayerIndex: number;
     phase: 'setup' | 'player-names' | 'theme-selection' | 'role-distribution' | 'playing' | 'voting' | 'results';
+    currentRound: number;
+    maxRounds: number;
     ejectedPlayerId?: number | null;
     winner?: 'crewmates' | 'impostors' | null;
     votingHistory?: {

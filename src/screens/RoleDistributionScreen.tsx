@@ -7,6 +7,7 @@ import {
     Animated,
     Dimensions,
     Vibration,
+    Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
@@ -26,7 +27,15 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
     onBack,
     onComplete,
 }) => {
-    const { gameState, markPlayerAsSeen, nextPlayer, getCurrentPlayer, allThemes } = useGame();
+    const {
+        gameState,
+        markPlayerAsSeen,
+        nextPlayer,
+        getCurrentPlayer,
+        allThemes,
+        resetGame,
+    } = useGame();
+
     const currentThemeData = allThemes.find(t => t.id === gameState.config.themeId);
     const [cardState, setCardState] = useState<CardState>('waiting');
 
@@ -133,6 +142,28 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
         }
     };
 
+    const handleCancelGame = () => {
+        Alert.alert(
+            '¿Salir de la Partida?',
+            'Si hubo una equivocación, puedes volver atrás o iniciar una nueva partida sin tener que pasar por todos los jugadores.',
+            [
+                { text: 'Continuar Viendo', style: 'cancel' },
+                {
+                    text: 'Cambiar Temática',
+                    onPress: onBack,
+                },
+                {
+                    text: 'Reiniciar Todo',
+                    style: 'destructive',
+                    onPress: () => {
+                        resetGame();
+                        onBack();
+                    },
+                },
+            ]
+        );
+    };
+
     const progressWidth = holdProgress.interpolate({
         inputRange: [0, 1],
         outputRange: ['0%', '100%'],
@@ -150,6 +181,24 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
             />
 
             <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
+                {/* Top Nav with Close / Exit Button */}
+                <View style={styles.topNav}>
+                    <TouchableOpacity
+                        style={styles.exitBtn}
+                        onPress={handleCancelGame}
+                        activeOpacity={0.7}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    >
+                        <Ionicons name="close" size={18} color={colors.textSecondary} />
+                        <Text style={styles.exitBtnText}>Salir</Text>
+                    </TouchableOpacity>
+
+                    <View style={styles.themeTag}>
+                        <Text style={styles.themeIcon}>{currentTheme?.icon || '🎭'}</Text>
+                        <Text style={styles.themeName}>{currentTheme?.name}</Text>
+                    </View>
+                </View>
+
                 {/* Header Progress */}
                 <View style={styles.header}>
                     <View style={styles.progressSection}>
@@ -160,12 +209,8 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
                             Jugador {gameState.currentPlayerIndex + 1} de {gameState.players.length}
                         </Text>
                     </View>
-
-                    <View style={styles.themeTag}>
-                        <Text style={styles.themeIcon}>{currentTheme?.icon || '🎭'}</Text>
-                        <Text style={styles.themeName}>{currentTheme?.name}</Text>
-                    </View>
                 </View>
+
 
                 {/* Player Header Avatar */}
                 <View style={styles.playerSection}>
@@ -364,7 +409,29 @@ const styles = StyleSheet.create({
     content: {
         flex: 1,
         paddingHorizontal: 20,
-        paddingTop: 54,
+        paddingTop: 50,
+    },
+    topNav: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    exitBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: colors.bgGlassHover,
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 10,
+        gap: 4,
+        borderWidth: 1,
+        borderColor: colors.borderLight,
+    },
+    exitBtnText: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: colors.textSecondary,
     },
     header: {
         flexDirection: 'row',
@@ -374,8 +441,8 @@ const styles = StyleSheet.create({
     },
     progressSection: {
         flex: 1,
-        marginRight: 14,
     },
+
     progressBar: {
         height: 4,
         backgroundColor: colors.bgElevated,

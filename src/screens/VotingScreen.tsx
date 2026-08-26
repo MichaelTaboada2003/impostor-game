@@ -23,15 +23,23 @@ interface VotingScreenProps {
     onBackToDiscussion: () => void;
 }
 
+interface VotingOutcome {
+    ejectedPlayer: Player | null;
+    winner: 'crewmates' | 'impostors' | null;
+    isGameOver: boolean;
+    currentRound: number;
+    maxRounds: number;
+}
+
 export const VotingScreen: React.FC<VotingScreenProps> = ({
     onVotedComplete,
     onBackToDiscussion,
 }) => {
-    const { gameState, submitVote, calculateVotingResults } = useGame();
+    const { gameState, submitVote, calculateVotingResults, continueToNextRound } = useGame();
     const [selectedSuspectId, setSelectedSuspectId] = useState<number | null>(null);
     const [activeVoterIndex, setActiveVoterIndex] = useState<number>(0);
     const [showEjectionModal, setShowEjectionModal] = useState(false);
-    const [ejectedPlayer, setEjectedPlayer] = useState<Player | null>(null);
+    const [votingOutcome, setVotingOutcome] = useState<VotingOutcome | null>(null);
     const [revealedStatus, setRevealedStatus] = useState(false);
 
     const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -58,8 +66,8 @@ export const VotingScreen: React.FC<VotingScreenProps> = ({
         if (activeVoterIndex < totalPlayers - 1) {
             setActiveVoterIndex(prev => prev + 1);
         } else {
-            const result = calculateVotingResults();
-            setEjectedPlayer(result.ejectedPlayer);
+            const outcome = calculateVotingResults();
+            setVotingOutcome(outcome);
             setShowEjectionModal(true);
             setRevealedStatus(false);
             Vibration.vibrate([0, 100, 80, 150, 80, 300]);
@@ -68,7 +76,7 @@ export const VotingScreen: React.FC<VotingScreenProps> = ({
 
     const handleRevealEjection = () => {
         setRevealedStatus(true);
-        if (ejectedPlayer?.isImpostor) {
+        if (votingOutcome?.ejectedPlayer?.isImpostor) {
             Vibration.vibrate([0, 80, 40, 80, 40, 200]);
         } else {
             Vibration.vibrate([0, 200, 100, 200]);
@@ -80,6 +88,12 @@ export const VotingScreen: React.FC<VotingScreenProps> = ({
             Animated.timing(shakeAnim, { toValue: 6, duration: 40, useNativeDriver: true }),
             Animated.timing(shakeAnim, { toValue: 0, duration: 40, useNativeDriver: true }),
         ]).start();
+    };
+
+    const handleGoToNextRound = () => {
+        setShowEjectionModal(false);
+        continueToNextRound();
+        onBackToDiscussion();
     };
 
     const handleGoToResults = () => {
@@ -97,10 +111,18 @@ export const VotingScreen: React.FC<VotingScreenProps> = ({
             <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
                 {/* Header */}
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={onBackToDiscussion} style={styles.backBtn} activeOpacity={0.7}>
-                        <Ionicons name="arrow-back" size={16} color={colors.textSecondary} />
-                        <Text style={styles.backBtnText}>Volver a Debate</Text>
-                    </TouchableOpacity>
+                    <View style={styles.topNavRow}>
+                        <TouchableOpacity onPress={onBackToDiscussion} style={styles.backBtn} activeOpacity={0.7}>
+                            <Ionicons name="arrow-back" size={16} color={colors.textSecondary} />
+                            <Text style={styles.backBtnText}>Volver a Debate</Text>
+                        </TouchableOpacity>
+
+                        <View style={styles.roundHeaderBadge}>
+                            <Text style={styles.roundHeaderBadgeText}>
+                                Ronda {gameState.currentRound} de {gameState.maxRounds}
+                            </Text>
+                        </View>
+                    </View>
 
                     <View style={styles.voterHeaderCard}>
                         <View style={styles.voterTagRow}>
@@ -267,11 +289,22 @@ export const VotingScreen: React.FC<VotingScreenProps> = ({
                                 <Text style={styles.ejectionHeaderTitle}>VEREDICTO DEL GRUPO</Text>
                             </View>
 
-                            {ejectedPlayer ? (
+                            {/* Round Badge */}
+                            {votingOutcome && (
+                                <View style={styles.verdictRoundBadge}>
+                                    <Text style={styles.verdictRoundBadgeText}>
+                                        RONDA {votingOutcome.currentRound} DE {votingOutcome.maxRounds}
+                                    </Text>
+                                </View>
+                            )}
+
+                            {votingOutcome?.ejectedPlayer ? (
                                 <>
                                     <Text style={styles.ejectedLabel}>El más votado por la tripulación es:</Text>
                                     <View style={styles.ejectedNameBox}>
-                                        <Text style={styles.ejectedPlayerName}>{ejectedPlayer.name}</Text>
+                                        <Text style={styles.ejectedPlayerName}>
+                                            {votingOutcome.ejectedPlayer.name}
+                                        </Text>
                                     </View>
 
                                     {!revealedStatus ? (
@@ -297,10 +330,14 @@ export const VotingScreen: React.FC<VotingScreenProps> = ({
                                             <View
                                                 style={[
                                                     styles.verdictIconCircle,
-                                                    { backgroundColor: ejectedPlayer.isImpostor ? 'rgba(255, 42, 85, 0.2)' : 'rgba(0, 240, 255, 0.2)' },
+                                                    {
+                                                        backgroundColor: votingOutcome.ejectedPlayer.isImpostor
+                                                            ? 'rgba(255, 42, 85, 0.2)'
+                                                            : 'rgba(0, 240, 255, 0.2)',
+                                                    },
                                                 ]}
                                             >
-                                                {ejectedPlayer.isImpostor ? (
+                                                {votingOutcome.ejectedPlayer.isImpostor ? (
                                                     <MaterialCommunityIcons name="knife-military" size={40} color={colors.impostor} />
                                                 ) : (
                                                     <Ionicons name="shield-checkmark" size={40} color={colors.cyan} />
@@ -310,55 +347,124 @@ export const VotingScreen: React.FC<VotingScreenProps> = ({
                                             <Text
                                                 style={[
                                                     styles.verdictRoleText,
-                                                    { color: ejectedPlayer.isImpostor ? colors.impostor : colors.cyan },
+                                                    {
+                                                        color: votingOutcome.ejectedPlayer.isImpostor
+                                                            ? colors.impostor
+                                                            : colors.cyan,
+                                                    },
                                                 ]}
                                             >
-                                                {ejectedPlayer.isImpostor
+                                                {votingOutcome.ejectedPlayer.isImpostor
                                                     ? '¡ERA EL IMPOSTOR!'
                                                     : '¡ERA UN TRIPULANTE!'}
                                             </Text>
+
                                             <Text style={styles.verdictSub}>
-                                                {ejectedPlayer.isImpostor
-                                                    ? 'La tripulación descubrió al infiltrado con éxito.'
-                                                    : 'El impostor logró engañar a todos...'}
+                                                {votingOutcome.ejectedPlayer.isImpostor
+                                                    ? '¡La tripulación descubrió al impostor y gana la partida!'
+                                                    : votingOutcome.isGameOver
+                                                    ? `El impostor sobrevivió las ${votingOutcome.maxRounds} rondas y gana la partida.`
+                                                    : `"${votingOutcome.ejectedPlayer.name}" era inocente. El impostor sigue en juego.`}
                                             </Text>
 
-                                            <TouchableOpacity
-                                                style={styles.goToResultsBtn}
-                                                onPress={handleGoToResults}
-                                                activeOpacity={0.85}
-                                            >
-                                                <LinearGradient
-                                                    colors={['#00B894', '#00F59B']}
-                                                    style={styles.goToResultsGradient}
+                                            {/* If game is over (Impostor caught OR reached max rounds) */}
+                                            {votingOutcome.isGameOver ? (
+                                                <TouchableOpacity
+                                                    style={styles.goToResultsBtn}
+                                                    onPress={handleGoToResults}
+                                                    activeOpacity={0.85}
                                                 >
-                                                    <Text style={styles.goToResultsText}>
-                                                        Ver Resultados Finales
-                                                    </Text>
-                                                    <Ionicons name="arrow-forward" size={18} color="#07080C" style={{ marginLeft: 6 }} />
-                                                </LinearGradient>
-                                            </TouchableOpacity>
+                                                    <LinearGradient
+                                                        colors={['#00B894', '#00F59B']}
+                                                        style={styles.goToResultsGradient}
+                                                    >
+                                                        <Text style={styles.goToResultsText}>
+                                                            Ver Resultados Finales
+                                                        </Text>
+                                                        <Ionicons name="arrow-forward" size={18} color="#07080C" style={{ marginLeft: 6 }} />
+                                                    </LinearGradient>
+                                                </TouchableOpacity>
+                                            ) : (
+                                                /* If game continues to next round */
+                                                <View style={styles.roundActionCol}>
+                                                    <TouchableOpacity
+                                                        style={styles.nextRoundPrimaryBtn}
+                                                        onPress={handleGoToNextRound}
+                                                        activeOpacity={0.85}
+                                                    >
+                                                        <LinearGradient
+                                                            colors={['#7952FF', '#9D7DFF']}
+                                                            style={styles.nextRoundGradient}
+                                                        >
+                                                            <Text style={styles.nextRoundText}>
+                                                                ▶ Ir a Ronda {votingOutcome.currentRound + 1} de {votingOutcome.maxRounds}
+                                                            </Text>
+                                                        </LinearGradient>
+                                                    </TouchableOpacity>
+
+                                                    <TouchableOpacity
+                                                        style={styles.endGameNowBtn}
+                                                        onPress={handleGoToResults}
+                                                    >
+                                                        <Text style={styles.endGameNowText}>
+                                                            Terminar partida y revelar ahora
+                                                        </Text>
+                                                    </TouchableOpacity>
+                                                </View>
+                                            )}
                                         </View>
                                     )}
                                 </>
                             ) : (
+                                /* TIE STATE */
                                 <View style={styles.tieBox}>
                                     <Ionicons name="scale-outline" size={44} color={colors.warning} style={{ marginBottom: 8 }} />
                                     <Text style={styles.tieTitle}>EMPATE DE VOTOS</Text>
                                     <Text style={styles.tieSub}>
-                                        No hubo consenso suficiente para expulsar a un sospechoso.
+                                        {votingOutcome?.isGameOver
+                                            ? `No hubo consenso y el impostor superó las ${votingOutcome?.maxRounds} rondas requeridas.`
+                                            : 'No hubo consenso para expulsar a un sospechoso. El impostor sigue libre.'}
                                     </Text>
-                                    <TouchableOpacity
-                                        style={styles.goToResultsBtn}
-                                        onPress={handleGoToResults}
-                                    >
-                                        <LinearGradient
-                                            colors={['#7952FF', '#9D7DFF']}
-                                            style={styles.goToResultsGradient}
+
+                                    {votingOutcome?.isGameOver ? (
+                                        <TouchableOpacity
+                                            style={styles.goToResultsBtn}
+                                            onPress={handleGoToResults}
                                         >
-                                            <Text style={styles.goToResultsText}>Ver Quién Era</Text>
-                                        </LinearGradient>
-                                    </TouchableOpacity>
+                                            <LinearGradient
+                                                colors={['#7952FF', '#9D7DFF']}
+                                                style={styles.goToResultsGradient}
+                                            >
+                                                <Text style={styles.goToResultsText}>Ver Resultados</Text>
+                                            </LinearGradient>
+                                        </TouchableOpacity>
+                                    ) : (
+                                        <View style={styles.roundActionCol}>
+                                            <TouchableOpacity
+                                                style={styles.nextRoundPrimaryBtn}
+                                                onPress={handleGoToNextRound}
+                                                activeOpacity={0.85}
+                                            >
+                                                <LinearGradient
+                                                    colors={['#7952FF', '#9D7DFF']}
+                                                    style={styles.nextRoundGradient}
+                                                >
+                                                    <Text style={styles.nextRoundText}>
+                                                        ▶ Ir a Ronda {(votingOutcome?.currentRound || 1) + 1} de {votingOutcome?.maxRounds || 2}
+                                                    </Text>
+                                                </LinearGradient>
+                                            </TouchableOpacity>
+
+                                            <TouchableOpacity
+                                                style={styles.endGameNowBtn}
+                                                onPress={handleGoToResults}
+                                            >
+                                                <Text style={styles.endGameNowText}>
+                                                    Terminar partida y revelar ahora
+                                                </Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                    )}
                                 </View>
                             )}
                         </LinearGradient>
@@ -382,17 +488,35 @@ const styles = StyleSheet.create({
     header: {
         marginBottom: 14,
     },
+    topNavRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 10,
+    },
     backBtn: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 6,
         paddingVertical: 4,
-        marginBottom: 10,
     },
     backBtnText: {
         color: colors.textSecondary,
         fontSize: 13,
         fontWeight: '700',
+    },
+    roundHeaderBadge: {
+        backgroundColor: 'rgba(121, 82, 255, 0.2)',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: colors.primaryLight,
+    },
+    roundHeaderBadgeText: {
+        fontSize: 11,
+        fontWeight: '800',
+        color: colors.primaryLight,
     },
     voterHeaderCard: {
         backgroundColor: colors.bgCard,
@@ -575,13 +699,28 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 8,
-        marginBottom: 16,
+        marginBottom: 6,
     },
     ejectionHeaderTitle: {
         fontSize: 12,
         fontWeight: '900',
         color: colors.impostor,
         letterSpacing: 2,
+    },
+    verdictRoundBadge: {
+        backgroundColor: 'rgba(121, 82, 255, 0.2)',
+        paddingHorizontal: 10,
+        paddingVertical: 3,
+        borderRadius: 8,
+        marginBottom: 14,
+        borderWidth: 1,
+        borderColor: colors.primary,
+    },
+    verdictRoundBadgeText: {
+        fontSize: 10,
+        fontWeight: '800',
+        color: colors.primaryLight,
+        letterSpacing: 1,
     },
     ejectedLabel: {
         fontSize: 13,
@@ -643,6 +782,7 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         marginTop: 4,
         marginBottom: 18,
+        lineHeight: 18,
     },
     goToResultsBtn: {
         width: '100%',
@@ -660,6 +800,34 @@ const styles = StyleSheet.create({
         fontSize: 15,
         fontWeight: '900',
     },
+    roundActionCol: {
+        width: '100%',
+        gap: 10,
+    },
+    nextRoundPrimaryBtn: {
+        width: '100%',
+        borderRadius: 14,
+        overflow: 'hidden',
+    },
+    nextRoundGradient: {
+        paddingVertical: 15,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    nextRoundText: {
+        color: '#FFFFFF',
+        fontSize: 15,
+        fontWeight: '900',
+    },
+    endGameNowBtn: {
+        alignItems: 'center',
+        paddingVertical: 6,
+    },
+    endGameNowText: {
+        fontSize: 12,
+        color: colors.textMuted,
+        fontWeight: '700',
+    },
     tieBox: {
         alignItems: 'center',
         width: '100%',
@@ -675,5 +843,6 @@ const styles = StyleSheet.create({
         color: colors.textMuted,
         textAlign: 'center',
         marginBottom: 18,
+        lineHeight: 18,
     },
 });

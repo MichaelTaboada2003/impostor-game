@@ -47,30 +47,13 @@ export const storageService = {
     async getSavedGroups(): Promise<PlayerGroup[]> {
         try {
             const data = await AsyncStorage.getItem(SAVED_GROUPS_KEY);
-            if (data) return JSON.parse(data);
-
-            // Default initial preset groups if none exist
-            const defaults: PlayerGroup[] = [
-                {
-                    id: 'amigos-default',
-                    name: 'Amigos de Fiesta',
-                    players: ['Carlos', 'Laura', 'Mateo', 'Sofia', 'Andres'],
-                    createdAt: Date.now(),
-                },
-                {
-                    id: 'familia-default',
-                    name: 'Familia',
-                    players: ['Papá', 'Mamá', 'Hijo', 'Hija', 'Tío'],
-                    createdAt: Date.now(),
-                }
-            ];
-            await AsyncStorage.setItem(SAVED_GROUPS_KEY, JSON.stringify(defaults));
-            return defaults;
+            return data ? JSON.parse(data) : [];
         } catch (error) {
             console.error('Error loading saved groups:', error);
             return [];
         }
     },
+
 
     async saveGroup(name: string, players: string[]): Promise<PlayerGroup[]> {
         try {

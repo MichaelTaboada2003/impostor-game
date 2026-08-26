@@ -124,12 +124,21 @@ export const PlayingScreen: React.FC<PlayingScreenProps> = ({
                             </View>
                         </View>
 
-                        {gameState.config.gameMode === 'undercover' && (
-                            <View style={styles.undercoverBadge}>
-                                <Text style={styles.undercoverBadgeText}>UNDERCOVER</Text>
+                        <View style={styles.headerBadgesRow}>
+                            <View style={styles.roundBadge}>
+                                <Text style={styles.roundBadgeText}>
+                                    Ronda {gameState.currentRound || 1}/{gameState.maxRounds || 2}
+                                </Text>
                             </View>
-                        )}
+
+                            {gameState.config.gameMode === 'undercover' && (
+                                <View style={styles.undercoverBadge}>
+                                    <Text style={styles.undercoverBadgeText}>UNDERCOVER</Text>
+                                </View>
+                            )}
+                        </View>
                     </View>
+
 
                     {/* Who Starts Roulette Button */}
                     <TouchableOpacity
@@ -405,6 +414,25 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: colors.textMuted,
     },
+    headerBadgesRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    roundBadge: {
+        backgroundColor: 'rgba(121, 82, 255, 0.2)',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 6,
+        borderWidth: 1,
+        borderColor: colors.primaryLight,
+    },
+    roundBadgeText: {
+        fontSize: 10,
+        fontWeight: '900',
+        color: colors.primaryLight,
+        letterSpacing: 0.5,
+    },
     undercoverBadge: {
         backgroundColor: 'rgba(255, 77, 148, 0.2)',
         paddingHorizontal: 8,
@@ -419,6 +447,7 @@ const styles = StyleSheet.create({
         color: colors.aiPink,
         letterSpacing: 0.8,
     },
+
     rouletteCard: {
         borderRadius: 16,
         overflow: 'hidden',

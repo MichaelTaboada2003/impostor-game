@@ -137,6 +137,11 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
                                         {currentTheme?.icon} {currentTheme?.name}
                                     </Text>
                                 </View>
+                                <View style={styles.roundsStatBadge}>
+                                    <Text style={styles.roundsStatBadgeText}>
+                                        {gameState.currentRound} {gameState.currentRound === 1 ? 'ronda jugada' : 'rondas jugadas'} (máx {gameState.maxRounds})
+                                    </Text>
+                                </View>
                                 {gameState.secretHint ? (
                                     <View style={styles.hintBadge}>
                                         <Text style={styles.hintBadgeText}>
@@ -145,6 +150,7 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
                                     </View>
                                 ) : null}
                             </View>
+
 
                             {gameState.config.gameMode === 'undercover' && gameState.undercoverWord ? (
                                 <View style={styles.undercoverWordCard}>
@@ -338,6 +344,19 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontWeight: '700',
     },
+    roundsStatBadge: {
+        backgroundColor: 'rgba(121, 82, 255, 0.2)',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: colors.primary,
+    },
+    roundsStatBadgeText: {
+        color: colors.primaryLight,
+        fontSize: 12,
+        fontWeight: '800',
+    },
     hintBadge: {
         backgroundColor: 'rgba(255, 184, 0, 0.15)',
         paddingHorizontal: 10,
@@ -349,6 +368,7 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontWeight: '700',
     },
+
     undercoverWordCard: {
         marginTop: 12,
         backgroundColor: colors.bgElevated,

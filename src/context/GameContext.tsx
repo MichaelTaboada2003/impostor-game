@@ -31,8 +31,22 @@ interface GameContextType {
     updateGroup: (group: PlayerGroup) => Promise<void>;
     deleteGroup: (groupId: string) => Promise<void>;
     submitVote: (voterId: number, targetId: number) => void;
-    calculateVotingResults: () => { ejectedPlayer: Player | null; winner: 'crewmates' | 'impostors' };
+    calculateVotingResults: () => {
+        ejectedPlayer: Player | null;
+        winner: 'crewmates' | 'impostors' | null;
+        isGameOver: boolean;
+        currentRound: number;
+        maxRounds: number;
+    };
+    continueToNextRound: () => void;
 }
+
+export const calculateMaxRounds = (numPlayers: number): number => {
+    if (numPlayers <= 3) return 1;
+    if (numPlayers === 4) return 2;
+    if (numPlayers === 5) return 3;
+    return 4; // Máximo 4 rondas
+};
 
 const initialGameState: GameState = {
     config: {
@@ -49,10 +63,13 @@ const initialGameState: GameState = {
     undercoverWord: '',
     currentPlayerIndex: 0,
     phase: 'setup',
+    currentRound: 1,
+    maxRounds: 2,
     ejectedPlayerId: null,
     winner: null,
     votingHistory: [],
 };
+
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
 
@@ -185,6 +202,8 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             };
         });
 
+        const maxRounds = calculateMaxRounds(numberOfPlayers);
+
         setGameState(prev => ({
             ...prev,
             config: { ...prev.config, themeId },
@@ -194,11 +213,14 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             players,
             currentPlayerIndex: 0,
             phase: 'role-distribution',
+            currentRound: 1,
+            maxRounds,
             ejectedPlayerId: null,
             winner: null,
             votingHistory: [],
         }));
     };
+
 
     const replayCurrentTheme = () => {
         if (gameState.config.themeId) {
@@ -332,7 +354,13 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         });
     };
 
-    const calculateVotingResults = (): { ejectedPlayer: Player | null; winner: 'crewmates' | 'impostors' } => {
+    const calculateVotingResults = (): {
+        ejectedPlayer: Player | null;
+        winner: 'crewmates' | 'impostors' | null;
+        isGameOver: boolean;
+        currentRound: number;
+        maxRounds: number;
+    } => {
         const voteCounts: Record<number, number> = {};
         gameState.players.forEach(p => {
             if (p.votedForId !== undefined) {
@@ -359,17 +387,54 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const finalEjectedId = isTie ? null : ejectedPlayerId;
         const ejectedPlayer = finalEjectedId !== null ? gameState.players.find(p => p.id === finalEjectedId) || null : null;
 
-        // Si expulsaron al impostor -> ganan tripulantes. Si no, gana el impostor.
-        const winner: 'crewmates' | 'impostors' = ejectedPlayer?.isImpostor ? 'crewmates' : 'impostors';
+        let winner: 'crewmates' | 'impostors' | null = null;
+        let isGameOver = false;
+
+        if (ejectedPlayer?.isImpostor) {
+            // El impostor fue descubierto y expulsado -> Ganan los tripulantes inmediatamente
+            winner = 'crewmates';
+            isGameOver = true;
+        } else {
+            // El impostor NO fue expulsado (se expulsó a un inocente o hubo empate)
+            if (gameState.currentRound >= gameState.maxRounds) {
+                // El impostor sobrevivió todas las rondas requeridas -> Gana el impostor
+                winner = 'impostors';
+                isGameOver = true;
+            } else {
+                // Aún quedan rondas por jugar
+                winner = null;
+                isGameOver = false;
+            }
+        }
 
         setGameState(prev => ({
             ...prev,
             ejectedPlayerId: finalEjectedId,
             winner,
-            phase: 'results',
+            phase: isGameOver ? 'results' : prev.phase,
         }));
 
-        return { ejectedPlayer, winner };
+        return {
+            ejectedPlayer,
+            winner,
+            isGameOver,
+            currentRound: gameState.currentRound,
+            maxRounds: gameState.maxRounds,
+        };
+    };
+
+    const continueToNextRound = () => {
+        setGameState(prev => ({
+            ...prev,
+            currentRound: prev.currentRound + 1,
+            ejectedPlayerId: null,
+            players: prev.players.map(p => ({
+                ...p,
+                votedForId: undefined,
+                votesReceived: 0,
+            })),
+            phase: 'playing',
+        }));
     };
 
     return (
@@ -403,8 +468,10 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 deleteGroup,
                 submitVote,
                 calculateVotingResults,
+                continueToNextRound,
             }}
         >
+
             {children}
         </GameContext.Provider>
     );
