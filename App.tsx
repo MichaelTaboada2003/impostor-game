@@ -117,7 +117,26 @@ const GameNavigator: React.FC = () => {
   }
 };
 
+import * as Updates from 'expo-updates';
+
 export default function App() {
+  React.useEffect(() => {
+    async function checkForUpdates() {
+      try {
+        if (!__DEV__) {
+          const update = await Updates.checkForUpdateAsync();
+          if (update.isAvailable) {
+            await Updates.fetchUpdateAsync();
+            await Updates.reloadAsync();
+          }
+        }
+      } catch (e) {
+        // Silently ignore if offline or in local dev
+      }
+    }
+    checkForUpdates();
+  }, []);
+
   return (
     <SafeAreaProvider>
       <GameProvider>
@@ -129,6 +148,7 @@ export default function App() {
     </SafeAreaProvider>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {
