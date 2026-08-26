@@ -19,7 +19,12 @@ import { Theme } from '../types/game';
 import { colors, gradients } from '../styles/colors';
 
 const { width } = Dimensions.get('window');
-const CARD_WIDTH = (width - 48) / 2;
+// El ancho de tarjeta se deriva del padding y el gap reales del grid: dos
+// tarjetas mas un gap deben caber exactos en el ancho disponible, o flexWrap
+// baja la segunda y deja una sola por fila.
+const GRID_H_PADDING = 20;
+const CARD_GAP = 10;
+const CARD_WIDTH = Math.floor((width - GRID_H_PADDING * 2 - CARD_GAP) / 2);
 
 interface ThemeSelectionScreenProps {
     onBack: () => void;
@@ -518,7 +523,7 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     scrollContent: {
-        paddingHorizontal: 20,
+        paddingHorizontal: GRID_H_PADDING,
         paddingBottom: 100,
     },
     aiHeroBanner: {
@@ -643,8 +648,8 @@ const styles = StyleSheet.create({
     themesGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        justifyContent: 'space-between',
-        gap: 10,
+        justifyContent: 'flex-start',
+        gap: CARD_GAP,
     },
     themeCardContainer: {
         width: CARD_WIDTH,
