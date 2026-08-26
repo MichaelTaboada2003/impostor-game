@@ -16,9 +16,10 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
-import { aiThemeService, AI_SUGGESTION_CHIPS } from '../services/aiThemeService';
+import { aiThemeService } from '../services/aiThemeService';
 import { Theme } from '../types/game';
 import { colors, gradients } from '../styles/colors';
+
 
 interface AIThemeModalProps {
     visible: boolean;
@@ -205,29 +206,10 @@ export const AIThemeModal: React.FC<AIThemeModalProps> = ({
                                         </View>
                                     </View>
 
-                                    {/* Quick Suggestions Chips */}
-                                    <View style={styles.chipsSection}>
-                                        <Text style={styles.sectionMiniLabel}>Sugerencias Rápidas</Text>
-                                        <View style={styles.chipsGrid}>
-                                            {AI_SUGGESTION_CHIPS.map((chip, index) => (
-                                                <TouchableOpacity
-                                                    key={index}
-                                                    style={styles.chipButton}
-                                                    onPress={() => {
-                                                        setTopic(chip.prompt);
-                                                        handleGenerate(chip.prompt);
-                                                    }}
-                                                    activeOpacity={0.7}
-                                                >
-                                                    <Text style={styles.chipText}>{chip.title}</Text>
-                                                </TouchableOpacity>
-                                            ))}
-                                        </View>
-                                    </View>
-
                                     {/* Vibe / Tone Selector */}
                                     <View style={styles.vibeSection}>
                                         <Text style={styles.sectionMiniLabel}>Tono de Partida</Text>
+
                                         <View style={styles.vibeRow}>
                                             {[
                                                 { key: 'casual', label: 'Casual', icon: 'happy-outline' },

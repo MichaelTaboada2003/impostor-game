@@ -89,6 +89,8 @@ export const PlayingScreen: React.FC<PlayingScreenProps> = ({
         onNewGame();
     };
 
+    const [showExitModal, setShowExitModal] = useState<boolean>(false);
+
     const isNearEnd = isCountdown && timer <= 15 && timer > 0;
     const isEnded = isCountdown && timer === 0;
 
@@ -99,12 +101,74 @@ export const PlayingScreen: React.FC<PlayingScreenProps> = ({
                 style={StyleSheet.absoluteFillObject}
             />
 
+            <Modal
+                transparent
+                visible={showExitModal}
+                animationType="fade"
+                onRequestClose={() => setShowExitModal(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <LinearGradient
+                            colors={gradients.sheetGlass}
+                            style={styles.modalGradient}
+                        >
+                            <View style={styles.modalIconCircle}>
+                                <Ionicons name="exit-outline" size={32} color={colors.impostor} />
+                            </View>
+
+                            <Text style={styles.modalTitle}>¿Terminar la partida?</Text>
+                            <Text style={styles.modalSubtitle}>
+                                Se cancelará la partida actual y volverás a la pantalla principal.
+                            </Text>
+
+                            <TouchableOpacity
+                                style={styles.modalDangerBtn}
+                                onPress={handleNewGame}
+                                activeOpacity={0.85}
+                            >
+                                <LinearGradient
+                                    colors={['#FF2A55', '#D6133C']}
+                                    style={styles.modalDangerGradient}
+                                >
+                                    <Ionicons name="refresh-outline" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+                                    <Text style={styles.modalDangerText}>Salir y Reiniciar</Text>
+                                </LinearGradient>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={styles.modalCancelBtn}
+                                onPress={() => setShowExitModal(false)}
+                            >
+                                <Text style={styles.modalCancelText}>Continuar Jugando</Text>
+                            </TouchableOpacity>
+                        </LinearGradient>
+                    </View>
+                </View>
+            </Modal>
+
             <ScrollView
                 style={styles.scrollView}
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
             >
                 <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
+                    {/* Top Exit Navigation Bar */}
+                    <View style={styles.topNavBar}>
+                        <TouchableOpacity
+                            style={styles.topExitBtn}
+                            onPress={() => {
+                                Vibration.vibrate(15);
+                                setShowExitModal(true);
+                            }}
+                            activeOpacity={0.7}
+                            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                        >
+                            <Ionicons name="close" size={16} color={colors.textSecondary} />
+                            <Text style={styles.topExitBtnText}>Salir de Partida</Text>
+                        </TouchableOpacity>
+                    </View>
+
                     {/* Header Info Bar */}
                     <View style={styles.headerInfoCard}>
                         <View style={styles.themeInfoLeft}>
@@ -138,6 +202,7 @@ export const PlayingScreen: React.FC<PlayingScreenProps> = ({
                             )}
                         </View>
                     </View>
+
 
 
                     {/* Who Starts Roulette Button */}
@@ -684,4 +749,76 @@ const styles = StyleSheet.create({
         fontWeight: '800',
         color: '#FFFFFF',
     },
+    topNavBar: {
+        flexDirection: 'row',
+        justifyContent: 'flex-start',
+        marginBottom: 10,
+    },
+    topExitBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: colors.bgGlassHover,
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 10,
+        gap: 4,
+        borderWidth: 1,
+        borderColor: colors.borderLight,
+    },
+    topExitBtnText: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: colors.textSecondary,
+    },
+    modalIconCircle: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        backgroundColor: 'rgba(255, 42, 85, 0.15)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 14,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 42, 85, 0.3)',
+    },
+    modalTitle: {
+        fontSize: 20,
+        fontWeight: '900',
+        color: colors.textPrimary,
+        marginBottom: 8,
+        textAlign: 'center',
+    },
+    modalSubtitle: {
+        fontSize: 13,
+        color: colors.textSecondary,
+        textAlign: 'center',
+        lineHeight: 18,
+        marginBottom: 20,
+    },
+    modalDangerBtn: {
+        width: '100%',
+        borderRadius: 14,
+        overflow: 'hidden',
+        marginBottom: 12,
+    },
+    modalDangerGradient: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 14,
+    },
+    modalDangerText: {
+        color: '#FFFFFF',
+        fontWeight: '900',
+        fontSize: 15,
+    },
+    modalCancelBtn: {
+        paddingVertical: 8,
+    },
+    modalCancelText: {
+        color: colors.textMuted,
+        fontWeight: '700',
+        fontSize: 13,
+    },
 });
+

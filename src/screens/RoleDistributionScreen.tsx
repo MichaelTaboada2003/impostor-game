@@ -8,7 +8,9 @@ import {
     Dimensions,
     Vibration,
     Alert,
+    Modal,
 } from 'react-native';
+
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import { useGame } from '../context/GameContext';
@@ -36,6 +38,8 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
         resetGame,
     } = useGame();
 
+    const [showExitModal, setShowExitModal] = useState<boolean>(false);
+
     const currentThemeData = allThemes.find(t => t.id === gameState.config.themeId);
     const [cardState, setCardState] = useState<CardState>('waiting');
 
@@ -54,15 +58,16 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
     const progress = ((gameState.currentPlayerIndex + 1) / gameState.players.length) * 100;
 
     useEffect(() => {
-        Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
-
-        Animated.loop(
-            Animated.sequence([
-                Animated.timing(pulseAnim, { toValue: 1.02, duration: 1200, useNativeDriver: true }),
-                Animated.timing(pulseAnim, { toValue: 1, duration: 1200, useNativeDriver: true }),
-            ])
-        ).start();
-    }, []);
+        Animated.parallel([
+            Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
+            Animated.loop(
+                Animated.sequence([
+                    Animated.timing(pulseAnim, { toValue: 1.05, duration: 900, useNativeDriver: true }),
+                    Animated.timing(pulseAnim, { toValue: 0.96, duration: 900, useNativeDriver: true }),
+                ])
+            ),
+        ]).start();
+    }, [gameState.currentPlayerIndex]);
 
     useEffect(() => {
         setCardState('waiting');
@@ -73,14 +78,12 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
     }, [gameState.currentPlayerIndex]);
 
     const startHold = () => {
-        if (cardState !== 'waiting') return;
-
         setCardState('revealing');
         Vibration.vibrate(20);
 
         Animated.timing(holdProgress, {
             toValue: 1,
-            duration: 1100,
+            duration: 500,
             useNativeDriver: false,
         }).start(({ finished }) => {
             if (finished) {
@@ -90,16 +93,11 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
     };
 
     const cancelHold = () => {
-        if (cardState === 'revealed') return;
-
-        setCardState('waiting');
-        holdProgress.stopAnimation();
-
-        Animated.timing(holdProgress, {
-            toValue: 0,
-            duration: 200,
-            useNativeDriver: false,
-        }).start();
+        if (cardState === 'revealing') {
+            holdProgress.stopAnimation();
+            holdProgress.setValue(0);
+            setCardState('waiting');
+        }
     };
 
     const revealCard = () => {
@@ -142,26 +140,20 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
         }
     };
 
-    const handleCancelGame = () => {
-        Alert.alert(
-            '¿Salir de la Partida?',
-            'Si hubo una equivocación, puedes volver atrás o iniciar una nueva partida sin tener que pasar por todos los jugadores.',
-            [
-                { text: 'Continuar Viendo', style: 'cancel' },
-                {
-                    text: 'Cambiar Temática',
-                    onPress: onBack,
-                },
-                {
-                    text: 'Reiniciar Todo',
-                    style: 'destructive',
-                    onPress: () => {
-                        resetGame();
-                        onBack();
-                    },
-                },
-            ]
-        );
+    const handleOpenExitModal = () => {
+        Vibration.vibrate(15);
+        setShowExitModal(true);
+    };
+
+    const handleChangeTheme = () => {
+        setShowExitModal(false);
+        onBack();
+    };
+
+    const handleResetAll = () => {
+        setShowExitModal(false);
+        resetGame();
+        onBack();
     };
 
     const progressWidth = holdProgress.interpolate({
@@ -180,12 +172,68 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
                 style={StyleSheet.absoluteFillObject}
             />
 
+            <Modal
+                transparent
+                visible={showExitModal}
+                animationType="fade"
+                onRequestClose={() => setShowExitModal(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalBox}>
+                        <LinearGradient
+                            colors={gradients.sheetGlass}
+                            style={styles.modalGradient}
+                        >
+                            <View style={styles.modalIconCircle}>
+                                <Ionicons name="exit-outline" size={32} color={colors.impostor} />
+                            </View>
+
+                            <Text style={styles.modalTitle}>¿Salir de la partida?</Text>
+                            <Text style={styles.modalSubtitle}>
+                                Si hubo una equivocación, puedes volver atrás o cambiar de tema sin tener que pasar por todos los jugadores.
+                            </Text>
+
+                            <TouchableOpacity
+                                style={styles.modalPrimaryBtn}
+                                onPress={handleChangeTheme}
+                                activeOpacity={0.85}
+                            >
+                                <LinearGradient
+                                    colors={['#7952FF', '#9D7DFF']}
+                                    style={styles.modalPrimaryGradient}
+                                >
+                                    <Ionicons name="sparkles-outline" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+                                    <Text style={styles.modalPrimaryText}>Cambiar Temática</Text>
+                                </LinearGradient>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={styles.modalDangerBtn}
+                                onPress={handleResetAll}
+                                activeOpacity={0.8}
+                            >
+                                <Ionicons name="refresh-outline" size={16} color={colors.impostor} style={{ marginRight: 6 }} />
+                                <Text style={styles.modalDangerText}>Reiniciar Todo</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={styles.modalCancelBtn}
+                                onPress={() => setShowExitModal(false)}
+                            >
+                                <Text style={styles.modalCancelText}>Continuar Viendo</Text>
+                            </TouchableOpacity>
+                        </LinearGradient>
+                    </View>
+                </View>
+            </Modal>
+
+
             <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
                 {/* Top Nav with Close / Exit Button */}
                 <View style={styles.topNav}>
                     <TouchableOpacity
                         style={styles.exitBtn}
-                        onPress={handleCancelGame}
+                        onPress={handleOpenExitModal}
                         activeOpacity={0.7}
                         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                     >
@@ -678,4 +726,91 @@ const styles = StyleSheet.create({
         fontWeight: '900',
         color: '#FFFFFF',
     },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.88)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 24,
+    },
+    modalBox: {
+        width: '100%',
+        maxWidth: 340,
+        borderRadius: 24,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: colors.borderLight,
+    },
+    modalGradient: {
+        padding: 24,
+        alignItems: 'center',
+    },
+    modalIconCircle: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        backgroundColor: 'rgba(255, 42, 85, 0.15)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 14,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 42, 85, 0.3)',
+    },
+    modalTitle: {
+        fontSize: 20,
+        fontWeight: '900',
+        color: colors.textPrimary,
+        marginBottom: 8,
+        textAlign: 'center',
+    },
+    modalSubtitle: {
+        fontSize: 13,
+        color: colors.textSecondary,
+        textAlign: 'center',
+        lineHeight: 18,
+        marginBottom: 20,
+    },
+    modalPrimaryBtn: {
+        width: '100%',
+        borderRadius: 14,
+        overflow: 'hidden',
+        marginBottom: 10,
+    },
+    modalPrimaryGradient: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 14,
+    },
+    modalPrimaryText: {
+        color: '#FFFFFF',
+        fontWeight: '900',
+        fontSize: 15,
+    },
+    modalDangerBtn: {
+        width: '100%',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'rgba(255, 42, 85, 0.12)',
+        paddingVertical: 14,
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 42, 85, 0.35)',
+        marginBottom: 12,
+    },
+    modalDangerText: {
+        color: colors.impostor,
+        fontWeight: '800',
+        fontSize: 14,
+    },
+    modalCancelBtn: {
+        paddingVertical: 8,
+    },
+    modalCancelText: {
+        color: colors.textMuted,
+        fontWeight: '700',
+        fontSize: 13,
+    },
 });
+

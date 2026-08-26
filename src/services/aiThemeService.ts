@@ -14,18 +14,8 @@ export interface GenerateThemeOptions {
     apiKey?: string;
 }
 
-export const AI_SUGGESTION_CHIPS = [
-    { title: '🍿 Series y Películas', icon: '🎬', prompt: 'Series de TV y Películas Populares' },
-    { title: '🎮 Videojuegos Épicos', icon: '👾', prompt: 'Videojuegos Populares y Personajes Famosos' },
-    { title: '🌮 Comidas Callejeras', icon: '🌭', prompt: 'Comida Rápida y Antojitos Latinos' },
-    { title: '🚀 Ciencia Ficción', icon: '👽', prompt: 'Ciencia Ficción, Espacio y Futuro' },
-    { title: '💼 Vida de Oficina', icon: '👔', prompt: 'Vida Godín, Oficina y Trabajo' },
-    { title: '🔥 Chismes & Farándula', icon: '💅', prompt: 'Farándula, Famosos y Celebridades' },
-    { title: '🧙 Magia y Fantasía', icon: '🪄', prompt: 'Mundo Mágico, Hechizos y Criaturas Fantásticas' },
-    { title: '⚽ Fútbol y Campeones', icon: '🏆', prompt: 'Fútbol Mundial, Jugadores y Equipos Históricos' },
-];
-
 // Offline fallback theme templates in case of network unavailability
+
 const OFFLINE_THEME_TEMPLATES: Record<string, Theme> = {
     'series-tv': {
         id: 'ia-series-tv',
