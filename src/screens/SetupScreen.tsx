@@ -13,7 +13,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Updates from 'expo-updates';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
-import { useGame } from '../context/GameContext';
+import { useGame, maxImpostorsFor } from '../context/GameContext';
 import { colors, gradients } from '../styles/colors';
 
 const { width } = Dimensions.get('window');
@@ -77,15 +77,15 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onNext }) => {
     const decrementPlayers = () => {
         if (numberOfPlayers > 3) {
             Vibration.vibrate(25);
+            // El ajuste manual usaba numberOfPlayers - 2 en vez del maximo real y
+            // podia dejar a los impostores en mayoria. El contexto ya aplica el
+            // limite dentro de setNumberOfPlayers.
             setNumberOfPlayers(numberOfPlayers - 1);
-            if (numberOfImpostors >= numberOfPlayers - 1) {
-                setNumberOfImpostors(Math.max(1, numberOfPlayers - 2));
-            }
         }
     };
 
     const incrementImpostors = () => {
-        const maxImpostors = Math.floor(numberOfPlayers / 2);
+        const maxImpostors = maxImpostorsFor(numberOfPlayers);
         if (numberOfImpostors < maxImpostors) {
             Vibration.vibrate(25);
             setNumberOfImpostors(numberOfImpostors + 1);
@@ -290,7 +290,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onNext }) => {
                                         <Text style={[styles.touchBtnText, { color: colors.impostorLight }]}>+</Text>
                                     </TouchableOpacity>
                                 </View>
-                                <Text style={styles.counterHint}>Máx {Math.floor(numberOfPlayers / 2)} impostores</Text>
+                                <Text style={styles.counterHint}>Máx {maxImpostorsFor(numberOfPlayers)} impostores</Text>
                             </LinearGradient>
                         </View>
                     </View>

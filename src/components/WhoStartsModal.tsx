@@ -30,49 +30,80 @@ export const WhoStartsModal: React.FC<WhoStartsModalProps> = ({
     const scaleAnim = useRef(new Animated.Value(0.8)).current;
     const pulseAnim = useRef(new Animated.Value(1)).current;
 
+    // La cadena de setTimeout y el bucle de pulso se guardan para poder
+    // cancelarlos: sin esto, cerrar el modal a media tirada dejaba la ruleta
+    // corriendo en segundo plano, vibrando y escribiendo estado sobre un
+    // componente ya oculto, y reabrirlo lanzaba una segunda cadena en paralelo.
+    const spinTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const pulseLoop = useRef<Animated.CompositeAnimation | null>(null);
+
+    const stopSpin = () => {
+        if (spinTimer.current) {
+            clearTimeout(spinTimer.current);
+            spinTimer.current = null;
+        }
+        pulseLoop.current?.stop();
+        pulseLoop.current = null;
+    };
+
     useEffect(() => {
         if (visible && players.length > 0) {
             spinRoulette();
+        } else {
+            stopSpin();
         }
+        return stopSpin;
     }, [visible]);
 
     const spinRoulette = () => {
+        stopSpin();
         setIsSpinning(true);
         setSelectedPlayer(null);
 
+        const total = players.length;
+
+        // El elegido se decide antes de girar y la tirada se alarga lo justo
+        // para terminar sobre el. Antes la ruleta recorria los jugadores en
+        // orden y al final sorteaba otro distinto, asi que daba un salto y la
+        // animacion no significaba nada.
+        const winnerIdx = Math.floor(Math.random() * total);
+        const base = 22 + Math.floor(Math.random() * total);
+        const lastShown = (base - 1) % total;
+        const totalSteps = base + ((winnerIdx - lastShown + total) % total);
+
         let counter = 0;
-        const totalSteps = 22 + Math.floor(Math.random() * players.length);
         let speed = 50;
 
         const step = () => {
-            const currentIdx = counter % players.length;
-            setSelectedPlayer(players[currentIdx]);
+            setSelectedPlayer(players[counter % total]);
             Vibration.vibrate(20);
             counter++;
 
             if (counter < totalSteps) {
+                // Desaceleracion final: la ruleta se frena antes de pararse.
                 if (counter > totalSteps - 7) {
                     speed += 40;
                 }
-                setTimeout(step, speed);
-            } else {
-                const finalChosen = players[Math.floor(Math.random() * players.length)];
-                setSelectedPlayer(finalChosen);
-                setIsSpinning(false);
-                Vibration.vibrate([0, 80, 50, 180]);
-
-                Animated.sequence([
-                    Animated.spring(scaleAnim, { toValue: 1.12, friction: 4, useNativeDriver: true }),
-                    Animated.spring(scaleAnim, { toValue: 1, friction: 6, useNativeDriver: true }),
-                ]).start();
-
-                Animated.loop(
-                    Animated.sequence([
-                        Animated.timing(pulseAnim, { toValue: 1.04, duration: 600, useNativeDriver: true }),
-                        Animated.timing(pulseAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
-                    ])
-                ).start();
+                spinTimer.current = setTimeout(step, speed);
+                return;
             }
+
+            spinTimer.current = null;
+            setIsSpinning(false);
+            Vibration.vibrate([0, 80, 50, 180]);
+
+            Animated.sequence([
+                Animated.spring(scaleAnim, { toValue: 1.12, friction: 4, useNativeDriver: true }),
+                Animated.spring(scaleAnim, { toValue: 1, friction: 6, useNativeDriver: true }),
+            ]).start();
+
+            pulseLoop.current = Animated.loop(
+                Animated.sequence([
+                    Animated.timing(pulseAnim, { toValue: 1.04, duration: 600, useNativeDriver: true }),
+                    Animated.timing(pulseAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
+                ])
+            );
+            pulseLoop.current.start();
         };
 
         step();

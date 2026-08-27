@@ -45,38 +45,39 @@ export const PlayingScreen: React.FC<PlayingScreenProps> = ({
     useEffect(() => {
         Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
 
-        Animated.loop(
+        // El bucle se guarda para poder detenerlo: sin esto seguia corriendo
+        // despues de desmontar la pantalla.
+        const loop = Animated.loop(
             Animated.sequence([
                 Animated.timing(pulseAnim, { toValue: 1.04, duration: 900, useNativeDriver: true }),
                 Animated.timing(pulseAnim, { toValue: 1, duration: 900, useNativeDriver: true }),
             ])
-        ).start();
+        );
+        loop.start();
+        return () => loop.stop();
     }, []);
 
+    // El updater solo cuenta: es una funcion pura. React puede reejecutar un
+    // updater (y en desarrollo lo hace siempre), asi que tener dentro la
+    // vibracion y un setState disparaba el aviso por duplicado en cada tic.
     useEffect(() => {
-        let interval: NodeJS.Timeout;
-        if (isTimerRunning) {
-            interval = setInterval(() => {
-                setTimer(prev => {
-                    if (isCountdown) {
-                        if (prev <= 1) {
-                            clearInterval(interval);
-                            setIsTimerRunning(false);
-                            Vibration.vibrate([0, 150, 80, 150, 80, 300]);
-                            return 0;
-                        }
-                        if (prev <= 11) {
-                            Vibration.vibrate(30);
-                        }
-                        return prev - 1;
-                    } else {
-                        return prev + 1;
-                    }
-                });
-            }, 1000);
-        }
-        return () => clearInterval(interval);
+        if (!isTimerRunning) return;
+        const id = setInterval(() => {
+            setTimer(prev => (isCountdown ? Math.max(0, prev - 1) : prev + 1));
+        }, 1000);
+        return () => clearInterval(id);
     }, [isTimerRunning, isCountdown]);
+
+    // Los avisos del tramo final viven aparte, atados al valor ya confirmado.
+    useEffect(() => {
+        if (!isCountdown) return;
+        if (timer === 0) {
+            setIsTimerRunning(false);
+            Vibration.vibrate([0, 150, 80, 150, 80, 300]);
+        } else if (timer <= 10) {
+            Vibration.vibrate(30);
+        }
+    }, [timer, isCountdown]);
 
     const formatTime = (seconds: number) => {
         const mins = Math.floor(seconds / 60);

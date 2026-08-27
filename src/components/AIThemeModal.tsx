@@ -51,27 +51,34 @@ export const AIThemeModal: React.FC<AIThemeModalProps> = ({
     const rotateAnim = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
-        if (isLoading) {
-            const interval = setInterval(() => {
-                setLoadingMsgIndex(prev => (prev + 1) % LOADING_MESSAGES.length);
-            }, 1800);
+        if (!isLoading) return;
 
-            Animated.loop(
-                Animated.sequence([
-                    Animated.timing(pulseAnim, { toValue: 1.08, duration: 700, useNativeDriver: true }),
-                    Animated.timing(pulseAnim, { toValue: 0.95, duration: 700, useNativeDriver: true }),
-                ])
-            ).start();
+        const interval = setInterval(() => {
+            setLoadingMsgIndex(prev => (prev + 1) % LOADING_MESSAGES.length);
+        }, 1800);
 
-            Animated.loop(
-                Animated.timing(rotateAnim, { toValue: 1, duration: 3000, useNativeDriver: true })
-            ).start();
+        // Los dos bucles se guardan para poder pararlos. Sin esto seguian
+        // corriendo despues de terminar la generacion y sobrescribian el reset
+        // de sus valores, asi que el indicador nunca se detenia de verdad.
+        const pulse = Animated.loop(
+            Animated.sequence([
+                Animated.timing(pulseAnim, { toValue: 1.08, duration: 700, useNativeDriver: true }),
+                Animated.timing(pulseAnim, { toValue: 0.95, duration: 700, useNativeDriver: true }),
+            ])
+        );
+        const spin = Animated.loop(
+            Animated.timing(rotateAnim, { toValue: 1, duration: 3000, useNativeDriver: true })
+        );
+        pulse.start();
+        spin.start();
 
-            return () => clearInterval(interval);
-        } else {
+        return () => {
+            clearInterval(interval);
+            pulse.stop();
+            spin.stop();
             pulseAnim.setValue(1);
             rotateAnim.setValue(0);
-        }
+        };
     }, [isLoading]);
 
     const handleGenerate = async (selectedTopic?: string) => {

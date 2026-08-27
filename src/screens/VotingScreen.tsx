@@ -101,6 +101,8 @@ export const VotingScreen: React.FC<VotingScreenProps> = ({
         onVotedComplete();
     };
 
+    if (!currentVoter) return null;
+
     return (
         <View style={styles.container}>
             <LinearGradient
@@ -176,6 +178,7 @@ export const VotingScreen: React.FC<VotingScreenProps> = ({
                                     isSelf && styles.suspectCardSelf,
                                 ]}
                                 onPress={() => handleSelectVote(player.id)}
+                                disabled={isSelf}
                                 activeOpacity={0.8}
                             >
                                 <LinearGradient
@@ -208,7 +211,7 @@ export const VotingScreen: React.FC<VotingScreenProps> = ({
                                             {player.name}
                                         </Text>
                                         {isSelf && (
-                                            <Text style={styles.selfLabel}>Tu voto</Text>
+                                            <Text style={styles.selfLabel}>Eres tú · no puedes votarte</Text>
                                         )}
                                     </View>
 

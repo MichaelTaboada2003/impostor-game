@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import { Player, GameConfig, GameState, Theme, PlayerGroup, GameMode } from '../types/game';
 import { getRandomWordEntry, themes as defaultThemes } from '../data/themes';
 import { storageService } from '../services/storageService';
@@ -42,6 +42,16 @@ interface GameContextType {
     continueToNextRound: () => void;
 }
 
+// Con N jugadores los impostores nunca pueden ser mayoria: como maximo la mitad.
+// Centralizado aqui porque numberOfPlayers se cambia por tres vias distintas
+// (ajuste manual, cargar un grupo guardado y editar la lista de nombres) y todas
+// deben respetar el limite.
+export const maxImpostorsFor = (numPlayers: number): number =>
+    Math.max(1, Math.floor(numPlayers / 2));
+
+export const clampImpostors = (numImpostors: number, numPlayers: number): number =>
+    Math.min(Math.max(1, numImpostors), maxImpostorsFor(numPlayers));
+
 export const calculateMaxRounds = (numPlayers: number): number => {
     if (numPlayers <= 3) return 1;
     if (numPlayers === 4) return 2;
@@ -76,6 +86,23 @@ const GameContext = createContext<GameContextType | undefined>(undefined);
 
 export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [gameState, setGameState] = useState<GameState>(initialGameState);
+
+    // setGameState solo surte efecto en el siguiente render, asi que cualquier
+    // lectura hecha en el mismo manejador que acaba de escribir ve datos viejos.
+    // Esta ref se actualiza de forma sincrona en cada escritura, y es lo que
+    // permite que la votacion cuente el ultimo voto emitido.
+    const gameStateRef = useRef<GameState>(initialGameState);
+
+    const applyGameState = (
+        updater: GameState | ((prev: GameState) => GameState)
+    ) => {
+        const next =
+            typeof updater === 'function'
+                ? (updater as (prev: GameState) => GameState)(gameStateRef.current)
+                : updater;
+        gameStateRef.current = next;
+        setGameState(next);
+    };
     const [playerNames, setPlayerNames] = useState<string[]>(
         Array.from({ length: 4 }, (_, i) => `Jugador ${i + 1}`)
     );
@@ -100,9 +127,14 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 if (recentNames && Array.isArray(recentNames) && recentNames.length >= 3) {
                     const validNames = recentNames.map(n => String(n || ''));
                     setPlayerNames(validNames);
-                    setGameState(prev => ({
+                    const count = Math.min(16, Math.max(3, validNames.length));
+                    applyGameState(prev => ({
                         ...prev,
-                        config: { ...prev.config, numberOfPlayers: Math.min(16, Math.max(3, validNames.length)) }
+                        config: {
+                            ...prev.config,
+                            numberOfPlayers: count,
+                            numberOfImpostors: clampImpostors(prev.config.numberOfImpostors, count),
+                        },
                     }));
                 }
             } catch (err) {
@@ -118,9 +150,13 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
 
     const setNumberOfPlayers = (num: number) => {
-        setGameState(prev => ({
+        applyGameState(prev => ({
             ...prev,
-            config: { ...prev.config, numberOfPlayers: num },
+            config: {
+                ...prev.config,
+                numberOfPlayers: num,
+                numberOfImpostors: clampImpostors(prev.config.numberOfImpostors, num),
+            },
         }));
         setPlayerNames(prev => {
             const newNames = [...prev];
@@ -137,28 +173,31 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
 
     const setNumberOfImpostors = (num: number) => {
-        setGameState(prev => ({
+        applyGameState(prev => ({
             ...prev,
-            config: { ...prev.config, numberOfImpostors: num },
+            config: {
+                ...prev.config,
+                numberOfImpostors: clampImpostors(num, prev.config.numberOfPlayers),
+            },
         }));
     };
 
     const setAllowHints = (allow: boolean) => {
-        setGameState(prev => ({
+        applyGameState(prev => ({
             ...prev,
             config: { ...prev.config, allowHints: allow },
         }));
     };
 
     const setGameMode = (gameMode: GameMode) => {
-        setGameState(prev => ({
+        applyGameState(prev => ({
             ...prev,
             config: { ...prev.config, gameMode },
         }));
     };
 
     const setRoundTimerSeconds = (roundTimerSeconds: number) => {
-        setGameState(prev => ({
+        applyGameState(prev => ({
             ...prev,
             config: { ...prev.config, roundTimerSeconds },
         }));
@@ -177,9 +216,13 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const validNames = names.filter(n => n.trim().length > 0);
         if (validNames.length >= 3) {
             setPlayerNames(validNames);
-            setGameState(prev => ({
+            applyGameState(prev => ({
                 ...prev,
-                config: { ...prev.config, numberOfPlayers: validNames.length }
+                config: {
+                    ...prev.config,
+                    numberOfPlayers: validNames.length,
+                    numberOfImpostors: clampImpostors(prev.config.numberOfImpostors, validNames.length),
+                },
             }));
             storageService.saveRecentNames(validNames);
         }
@@ -205,12 +248,24 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         const entry = getRandomWordEntry(themeObj);
 
-        const { numberOfPlayers, numberOfImpostors, gameMode } = gameState.config;
+        // Se lee de la ref y no del estado del render: selectTheme se llama a
+        // menudo justo despues de ajustar la configuracion.
+        const { numberOfPlayers, gameMode } = gameStateRef.current.config;
+        const numberOfImpostors = clampImpostors(
+            gameStateRef.current.config.numberOfImpostors,
+            numberOfPlayers
+        );
 
-        const impostorIndices: Set<number> = new Set();
-        while (impostorIndices.size < numberOfImpostors) {
-            impostorIndices.add(Math.floor(Math.random() * numberOfPlayers));
+        // Reparto por mezcla en lugar de sortear indices hasta completar el cupo:
+        // el bucle de rechazo anterior no terminaba nunca si los impostores
+        // superaban a los jugadores, algo alcanzable al cargar un grupo guardado
+        // mas pequeno que la partida configurada.
+        const shuffledIndices = Array.from({ length: numberOfPlayers }, (_, i) => i);
+        for (let i = shuffledIndices.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffledIndices[i], shuffledIndices[j]] = [shuffledIndices[j], shuffledIndices[i]];
         }
+        const impostorIndices = new Set(shuffledIndices.slice(0, numberOfImpostors));
 
         // En modo undercover, la palabra del impostor es una palabra parecida
         const undercoverWord = entry.undercoverPair || (entry.hint ? `${entry.hint} (${entry.word})` : `${entry.word} Alternativo`);
@@ -235,9 +290,9 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         const maxRounds = calculateMaxRounds(numberOfPlayers);
 
-        setGameState(prev => ({
+        applyGameState(prev => ({
             ...prev,
-            config: { ...prev.config, themeId },
+            config: { ...prev.config, themeId, numberOfImpostors },
             secretWord: entry.word,
             secretHint: entry.hint,
             undercoverWord,
@@ -255,13 +310,14 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
 
     const replayCurrentTheme = () => {
-        if (gameState.config.themeId) {
-            selectTheme(gameState.config.themeId);
+        const themeId = gameStateRef.current.config.themeId;
+        if (themeId) {
+            selectTheme(themeId);
         }
     };
 
     const markPlayerAsSeen = (playerId: number) => {
-        setGameState(prev => ({
+        applyGameState(prev => ({
             ...prev,
             players: prev.players.map(p =>
                 p.id === playerId ? { ...p, hasSeenWord: true } : p
@@ -270,7 +326,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
 
     const nextPlayer = () => {
-        setGameState(prev => {
+        applyGameState(prev => {
             const nextIndex = prev.currentPlayerIndex + 1;
             if (nextIndex >= prev.players.length) {
                 return { ...prev, phase: 'playing' };
@@ -280,18 +336,18 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
 
     const previousPlayer = () => {
-        setGameState(prev => ({
+        applyGameState(prev => ({
             ...prev,
             currentPlayerIndex: Math.max(0, prev.currentPlayerIndex - 1),
         }));
     };
 
     const setPhase = (phase: GameState['phase']) => {
-        setGameState(prev => ({ ...prev, phase }));
+        applyGameState(prev => ({ ...prev, phase }));
     };
 
     const resetGame = () => {
-        setGameState(prev => ({
+        applyGameState(prev => ({
             ...initialGameState,
             config: {
                 ...initialGameState.config,
@@ -345,7 +401,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     // Votación y Juicio
     const submitVote = (voterId: number, targetId: number) => {
-        setGameState(prev => {
+        applyGameState(prev => {
             const voter = prev.players.find(p => p.id === voterId);
             const target = prev.players.find(p => p.id === targetId);
             if (!voter || !target) return prev;
@@ -395,8 +451,13 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         currentRound: number;
         maxRounds: number;
     } => {
+        // Desde la ref, no desde el estado del render: esta funcion se invoca en
+        // el mismo manejador que acaba de registrar el voto del ultimo jugador,
+        // que de otro modo quedaba fuera del recuento.
+        const current = gameStateRef.current;
+
         const voteCounts: Record<number, number> = {};
-        gameState.players.forEach(p => {
+        current.players.forEach(p => {
             if (p.votedForId !== undefined) {
                 voteCounts[p.votedForId] = (voteCounts[p.votedForId] || 0) + 1;
             }
@@ -419,7 +480,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         // En caso de empate o sin votos, no se expulsa a nadie
         const finalEjectedId = isTie ? null : ejectedPlayerId;
-        const ejectedPlayer = finalEjectedId !== null ? gameState.players.find(p => p.id === finalEjectedId) || null : null;
+        const ejectedPlayer = finalEjectedId !== null ? current.players.find(p => p.id === finalEjectedId) || null : null;
 
         let winner: 'crewmates' | 'impostors' | null = null;
         let isGameOver = false;
@@ -430,7 +491,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             isGameOver = true;
         } else {
             // El impostor NO fue expulsado (se expulsó a un inocente o hubo empate)
-            if (gameState.currentRound >= gameState.maxRounds) {
+            if (current.currentRound >= current.maxRounds) {
                 // El impostor sobrevivió todas las rondas requeridas -> Gana el impostor
                 winner = 'impostors';
                 isGameOver = true;
@@ -441,7 +502,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             }
         }
 
-        setGameState(prev => ({
+        applyGameState(prev => ({
             ...prev,
             ejectedPlayerId: finalEjectedId,
             winner,
@@ -452,16 +513,20 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             ejectedPlayer,
             winner,
             isGameOver,
-            currentRound: gameState.currentRound,
-            maxRounds: gameState.maxRounds,
+            currentRound: current.currentRound,
+            maxRounds: current.maxRounds,
         };
     };
 
     const continueToNextRound = () => {
-        setGameState(prev => ({
+        applyGameState(prev => ({
             ...prev,
             currentRound: prev.currentRound + 1,
             ejectedPlayerId: null,
+            // Sin esto el historial arrastraba los votos de la ronda anterior
+            // mientras votedForId ya se habia limpiado, dejando la votacion en
+            // dos estados contradictorios.
+            votingHistory: [],
             players: prev.players.map(p => ({
                 ...p,
                 votedForId: undefined,
