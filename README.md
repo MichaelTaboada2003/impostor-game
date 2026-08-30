@@ -245,20 +245,6 @@ eas build -p android --profile production
 
 ---
 
-## 🤝 Contribuciones
-
-¡Las contribuciones, sugerencias de nuevas palabras o temáticas son bienvenidas!
-
-1. Haz un **Fork** del proyecto.
-2. Crea una rama para tu feature (`git checkout -b feature/NuevaTematica`).
-3. Realiza tus cambios y haz commit (`git commit -m 'feat: añadir temática de mitología'`).
-4. Haz push a tu rama (`git push origin feature/NuevaTematica`).
-5. Abre un **Pull Request**.
-
----
-
-## 📄 Licencia
-
 Distribuido bajo la Licencia **MIT**. Consulta `LICENSE` para más información.
 
 <p align="center">
