@@ -86,7 +86,7 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
         };
     }, [gameState.currentPlayerIndex]);
 
-    useEffect(() => {
+    const resetToWaiting = () => {
         setCardState('waiting');
         setCanAdvance(false);
         if (advanceTimer.current) {
@@ -97,6 +97,10 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
         revealOpacity.setValue(0);
         cardScale.setValue(1);
         holdProgress.setValue(0);
+    };
+
+    useEffect(() => {
+        resetToWaiting();
     }, [gameState.currentPlayerIndex]);
 
     useEffect(() => () => {
@@ -174,6 +178,7 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
         if (isLastPlayer) {
             onComplete();
         } else {
+            resetToWaiting();
             nextPlayer();
         }
     };
@@ -448,10 +453,11 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
                 <View style={styles.bottomBar}>
                     {cardState !== 'revealed' ? (
                         <TouchableOpacity
+                            key={`btn-hold-${gameState.currentPlayerIndex}`}
                             style={styles.holdTriggerBtn}
                             onPressIn={startHold}
                             onPressOut={cancelHold}
-                            activeOpacity={0.9}
+                            activeOpacity={0.85}
                         >
                             <LinearGradient
                                 colors={['#7952FF', '#5E38E6']}
@@ -465,6 +471,7 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
                         </TouchableOpacity>
                     ) : (
                         <TouchableOpacity
+                            key={`btn-next-${gameState.currentPlayerIndex}`}
                             style={[styles.nextPlayerBtn, !canAdvance && styles.nextPlayerBtnLocked]}
                             onPress={handleNext}
                             disabled={!canAdvance}
@@ -506,7 +513,7 @@ const styles = StyleSheet.create({
     content: {
         flex: 1,
         paddingHorizontal: 20,
-        paddingTop: 50,
+        paddingTop: 16,
     },
     topNav: {
         flexDirection: 'row',
@@ -613,7 +620,7 @@ const styles = StyleSheet.create({
     },
     card: {
         width: width - 48,
-        minHeight: 290,
+        minHeight: 275,
         borderRadius: 24,
         borderWidth: 1,
         borderColor: colors.borderLight,
