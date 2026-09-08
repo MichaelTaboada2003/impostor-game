@@ -53,6 +53,7 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
 
     const currentThemeData = allThemes.find(t => t.id === gameState.config.themeId);
     const [cardState, setCardState] = useState<CardState>('waiting');
+    const cardStateRef = useRef<CardState>('waiting');
 
     const holdProgress = useRef(new Animated.Value(0)).current;
     const cardOpacity = useRef(new Animated.Value(1)).current;
@@ -87,6 +88,7 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
     }, [gameState.currentPlayerIndex]);
 
     const resetToWaiting = () => {
+        cardStateRef.current = 'waiting';
         setCardState('waiting');
         setCanAdvance(false);
         if (advanceTimer.current) {
@@ -110,6 +112,9 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
     }, []);
 
     const startHold = () => {
+        if (cardStateRef.current === 'revealed') return;
+
+        cardStateRef.current = 'revealing';
         setCardState('revealing');
         Vibration.vibrate(20);
 
@@ -118,21 +123,24 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
             duration: HOLD_DURATION_MS,
             useNativeDriver: false,
         }).start(({ finished }) => {
-            if (finished) {
+            if (finished && cardStateRef.current === 'revealing') {
                 revealCard();
             }
         });
     };
 
     const cancelHold = () => {
-        if (cardState === 'revealing') {
-            holdProgress.stopAnimation();
-            holdProgress.setValue(0);
-            setCardState('waiting');
-        }
+        // Si ya se reveló la carta, soltar el dedo NO debe resetear la carta
+        if (cardStateRef.current === 'revealed') return;
+
+        cardStateRef.current = 'waiting';
+        holdProgress.stopAnimation();
+        holdProgress.setValue(0);
+        setCardState('waiting');
     };
 
     const revealCard = () => {
+        cardStateRef.current = 'revealed';
         setCardState('revealed');
 
         setCanAdvance(false);
