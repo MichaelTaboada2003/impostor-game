@@ -15,21 +15,19 @@ import * as Updates from 'expo-updates';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import { useGame, maxImpostorsFor } from '../context/GameContext';
 import { colors, gradients } from '../styles/colors';
+import { APP_VERSION } from '../version';
 
 const { width } = Dimensions.get('window');
 
-// Etiqueta de version del badge de cabecera. Al runtimeVersion (que con la policy
-// "appVersion" es la version de app.json) se le anade un identificador corto del
-// bundle en ejecucion: cambia con cada actualizacion OTA aplicada, asi que sirve
-// para comprobar de un vistazo si la actualizacion entro de verdad.
+// Etiqueta de version del badge de cabecera. Muestra la version actual de la app (APP_VERSION)
+// y el identificador corto del bundle en ejecucion si existe.
 const BUILD_LABEL = (() => {
     try {
-        const version = Updates.runtimeVersion || '1.0.0';
-        if (__DEV__) return `v${version} · dev`;
+        if (__DEV__) return `v${APP_VERSION} · dev`;
         const id = (Updates.updateId || '').replace(/-/g, '');
-        return id ? `v${version} · ${id.slice(0, 6)}` : `v${version} · base`;
+        return id ? `v${APP_VERSION} · ${id.slice(0, 6)}` : `v${APP_VERSION}`;
     } catch {
-        return 'v1.0.0';
+        return `v${APP_VERSION}`;
     }
 })();
 

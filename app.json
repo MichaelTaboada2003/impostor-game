@@ -2,7 +2,7 @@
   "expo": {
     "name": "Impostor",
     "slug": "impostor-game",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -29,9 +29,7 @@
         "projectId": "69ee6be0-2541-4758-ab41-ba471436941e"
       }
     },
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
+    "runtimeVersion": "1.0.0",
     "updates": {
       "url": "https://u.expo.dev/69ee6be0-2541-4758-ab41-ba471436941e"
     },
