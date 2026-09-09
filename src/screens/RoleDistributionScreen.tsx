@@ -758,6 +758,9 @@ const styles = StyleSheet.create({
     },
     bottomBar: {
         paddingVertical: 18,
+        // Blindaje: sin esto la barra puede quedar comprimida o empujada fuera de
+        // pantalla en telefonos bajos, ocultando el boton de avanzar.
+        flexShrink: 0,
     },
     holdTriggerBtn: {
         borderRadius: 16,
