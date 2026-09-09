@@ -9,6 +9,7 @@ import {
     Vibration,
     Alert,
     Modal,
+    Pressable,
 } from 'react-native';
 
 import { LinearGradient } from 'expo-linear-gradient';
@@ -457,56 +458,65 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
                     </Animated.View>
                 </View>
 
-                {/* Bottom Trigger Buttons */}
+                {/* Bottom Trigger Button */}
+                {/* Un UNICO boton siempre montado. Antes habia dos TouchableOpacity
+                    intercambiados por cardState: el de avanzar se montaba a mitad de la
+                    animacion de revelado y con el dedo todavia presionando, y quedaba
+                    invisible (degradado, texto e icono) aunque seguia respondiendo al
+                    toque. Sin intercambio, ese fallo no puede ocurrir. */}
                 <View style={styles.bottomBar}>
-                    {cardState !== 'revealed' ? (
-                        <TouchableOpacity
-                            key={`btn-hold-${gameState.currentPlayerIndex}`}
-                            style={styles.holdTriggerBtn}
-                            onPressIn={startHold}
-                            onPressOut={cancelHold}
-                            activeOpacity={0.85}
-                        >
-                            <LinearGradient
-                                colors={['#7952FF', '#5E38E6']}
-                                style={styles.holdTriggerGradient}
-                            >
-                                <MaterialCommunityIcons name="gesture-tap-hold" size={20} color="#FFFFFF" style={{ marginRight: 8 }} />
-                                <Text style={styles.holdTriggerText}>
-                                    {cardState === 'waiting' ? 'MANTÉN PRESIONADO' : 'REVELANDO...'}
-                                </Text>
-                            </LinearGradient>
-                        </TouchableOpacity>
-                    ) : (
-                        <TouchableOpacity
-                            key={`btn-next-${gameState.currentPlayerIndex}`}
-                            style={[styles.nextPlayerBtn, !canAdvance && styles.nextPlayerBtnLocked]}
-                            onPress={handleNext}
-                            disabled={!canAdvance}
-                            activeOpacity={0.85}
-                        >
-                            <LinearGradient
-                                colors={canAdvance ? ['#7952FF', '#9D7DFF'] : ['#2A2A3E', '#22223A']}
-                                style={styles.nextPlayerGradient}
-                            >
-                                {canAdvance ? (
-                                    <>
-                                        <Text style={styles.nextPlayerText}>
-                                            {gameState.currentPlayerIndex === gameState.players.length - 1
-                                                ? '¡Comenzar Debate!'
-                                                : 'Siguiente Jugador'}
-                                        </Text>
-                                        <Ionicons name="arrow-forward" size={18} color="#FFFFFF" style={{ marginLeft: 8 }} />
-                                    </>
-                                ) : (
-                                    <>
-                                        <Ionicons name="eye-outline" size={18} color={colors.textSecondary} style={{ marginRight: 8 }} />
-                                        <Text style={styles.nextPlayerTextLocked}>Memoriza tu palabra...</Text>
-                                    </>
-                                )}
-                            </LinearGradient>
-                        </TouchableOpacity>
-                    )}
+                    <Pressable
+                        style={[
+                            styles.bottomBtn,
+                            cardState !== 'revealed'
+                                ? styles.bottomBtnHold
+                                : canAdvance
+                                    ? styles.bottomBtnReady
+                                    : styles.bottomBtnLocked,
+                        ]}
+                        onPressIn={cardState !== 'revealed' ? startHold : undefined}
+                        onPressOut={cardState !== 'revealed' ? cancelHold : undefined}
+                        onPress={cardState === 'revealed' ? handleNext : undefined}
+                        disabled={cardState === 'revealed' && !canAdvance}
+                    >
+                        {/* Decorativo: va detras y en absoluto, nunca envuelve al texto.
+                            Si no llegara a pintar, queda el backgroundColor solido. */}
+                        <LinearGradient
+                            colors={
+                                cardState !== 'revealed'
+                                    ? ['#7952FF', '#5E38E6']
+                                    : canAdvance
+                                        ? ['#7952FF', '#9D7DFF']
+                                        : ['#2A2A3E', '#22223A']
+                            }
+                            style={StyleSheet.absoluteFill}
+                        />
+
+                        <View style={styles.bottomBtnRow}>
+                            {cardState !== 'revealed' ? (
+                                <>
+                                    <MaterialCommunityIcons name="gesture-tap-hold" size={20} color="#FFFFFF" style={{ marginRight: 8 }} />
+                                    <Text style={styles.holdTriggerText}>
+                                        {cardState === 'waiting' ? 'MANTÉN PRESIONADO' : 'REVELANDO...'}
+                                    </Text>
+                                </>
+                            ) : canAdvance ? (
+                                <>
+                                    <Text style={styles.nextPlayerText}>
+                                        {gameState.currentPlayerIndex === gameState.players.length - 1
+                                            ? '¡Comenzar Debate!'
+                                            : 'Siguiente Jugador'}
+                                    </Text>
+                                    <Ionicons name="arrow-forward" size={18} color="#FFFFFF" style={{ marginLeft: 8 }} />
+                                </>
+                            ) : (
+                                <>
+                                    <Ionicons name="eye-outline" size={18} color={colors.textSecondary} style={{ marginRight: 8 }} />
+                                    <Text style={styles.nextPlayerTextLocked}>Memoriza tu palabra...</Text>
+                                </>
+                            )}
+                        </View>
+                    </Pressable>
                 </View>
             </Animated.View>
         </View>
@@ -762,15 +772,32 @@ const styles = StyleSheet.create({
         // pantalla en telefonos bajos, ocultando el boton de avanzar.
         flexShrink: 0,
     },
-    holdTriggerBtn: {
+    bottomBtn: {
         borderRadius: 16,
         overflow: 'hidden',
-    },
-    holdTriggerGradient: {
+        // Altura explicita: no depende del texto ni del degradado para existir.
+        minHeight: 52,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
         paddingVertical: 16,
+    },
+    bottomBtnRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    // Colores solidos de respaldo por si el degradado no llega a pintar.
+    bottomBtnHold: {
+        backgroundColor: '#7952FF',
+    },
+    bottomBtnReady: {
+        backgroundColor: '#7952FF',
+    },
+    bottomBtnLocked: {
+        backgroundColor: '#2A2A3E',
+        borderWidth: 1,
+        borderColor: colors.borderSubtle,
     },
     holdTriggerText: {
         fontSize: 15,
@@ -778,24 +805,10 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         letterSpacing: 1,
     },
-    nextPlayerBtn: {
-        borderRadius: 16,
-        overflow: 'hidden',
-    },
-    nextPlayerGradient: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 16,
-    },
     nextPlayerText: {
         fontSize: 16,
         fontWeight: '900',
         color: '#FFFFFF',
-    },
-    nextPlayerBtnLocked: {
-        borderWidth: 1,
-        borderColor: colors.borderSubtle,
     },
     nextPlayerTextLocked: {
         fontSize: 15,
