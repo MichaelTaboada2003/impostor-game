@@ -459,63 +459,42 @@ export const RoleDistributionScreen: React.FC<RoleDistributionScreenProps> = ({
                 </View>
 
                 {/* Bottom Trigger Button */}
-                {/* Un UNICO boton siempre montado. Antes habia dos TouchableOpacity
-                    intercambiados por cardState: el de avanzar se montaba a mitad de la
-                    animacion de revelado y con el dedo todavia presionando, y quedaba
-                    invisible (degradado, texto e icono) aunque seguia respondiendo al
-                    toque. Sin intercambio, ese fallo no puede ocurrir. */}
+                {/* Estructura deliberadamente minima, igual a la version de abril que
+                    funcionaba: fondo solido y UN SOLO <Text> como hijo directo.
+                    Sin LinearGradient, sin iconos de @expo/vector-icons, sin View
+                    envolvente ni fragmentos. En el dispositivo se pintaba el fondo del
+                    boton pero NINGUNO de sus hijos, asi que se eliminan todas las
+                    piezas que podian estar causandolo. */}
                 <View style={styles.bottomBar}>
                     <Pressable
                         style={[
                             styles.bottomBtn,
-                            cardState !== 'revealed'
-                                ? styles.bottomBtnHold
-                                : canAdvance
-                                    ? styles.bottomBtnReady
-                                    : styles.bottomBtnLocked,
+                            cardState === 'revealed' && !canAdvance
+                                ? styles.bottomBtnLocked
+                                : styles.bottomBtnActive,
                         ]}
                         onPressIn={cardState !== 'revealed' ? startHold : undefined}
                         onPressOut={cardState !== 'revealed' ? cancelHold : undefined}
                         onPress={cardState === 'revealed' ? handleNext : undefined}
                         disabled={cardState === 'revealed' && !canAdvance}
                     >
-                        {/* Decorativo: va detras y en absoluto, nunca envuelve al texto.
-                            Si no llegara a pintar, queda el backgroundColor solido. */}
-                        <LinearGradient
-                            colors={
-                                cardState !== 'revealed'
-                                    ? ['#7952FF', '#5E38E6']
-                                    : canAdvance
-                                        ? ['#7952FF', '#9D7DFF']
-                                        : ['#2A2A3E', '#22223A']
+                        <Text
+                            style={
+                                cardState === 'revealed' && !canAdvance
+                                    ? styles.bottomBtnTextLocked
+                                    : styles.bottomBtnText
                             }
-                            style={StyleSheet.absoluteFill}
-                        />
-
-                        <View style={styles.bottomBtnRow}>
-                            {cardState !== 'revealed' ? (
-                                <>
-                                    <MaterialCommunityIcons name="gesture-tap-hold" size={20} color="#FFFFFF" style={{ marginRight: 8 }} />
-                                    <Text style={styles.holdTriggerText}>
-                                        {cardState === 'waiting' ? 'MANTÉN PRESIONADO' : 'REVELANDO...'}
-                                    </Text>
-                                </>
-                            ) : canAdvance ? (
-                                <>
-                                    <Text style={styles.nextPlayerText}>
-                                        {gameState.currentPlayerIndex === gameState.players.length - 1
-                                            ? '¡Comenzar Debate!'
-                                            : 'Siguiente Jugador'}
-                                    </Text>
-                                    <Ionicons name="arrow-forward" size={18} color="#FFFFFF" style={{ marginLeft: 8 }} />
-                                </>
-                            ) : (
-                                <>
-                                    <Ionicons name="eye-outline" size={18} color={colors.textSecondary} style={{ marginRight: 8 }} />
-                                    <Text style={styles.nextPlayerTextLocked}>Memoriza tu palabra...</Text>
-                                </>
-                            )}
-                        </View>
+                        >
+                            {cardState === 'waiting'
+                                ? 'MANTÉN PRESIONADO'
+                                : cardState === 'revealing'
+                                    ? 'REVELANDO...'
+                                    : !canAdvance
+                                        ? 'Memoriza tu palabra...'
+                                        : gameState.currentPlayerIndex === gameState.players.length - 1
+                                            ? '¡Comenzar Debate!  →'
+                                            : 'Siguiente Jugador  →'}
+                        </Text>
                     </Pressable>
                 </View>
             </Animated.View>
@@ -774,24 +753,14 @@ const styles = StyleSheet.create({
     },
     bottomBtn: {
         borderRadius: 16,
-        overflow: 'hidden',
-        // Altura explicita: no depende del texto ni del degradado para existir.
+        // Altura propia: no depende del texto para existir.
         minHeight: 52,
-        flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
         paddingVertical: 16,
+        paddingHorizontal: 16,
     },
-    bottomBtnRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    // Colores solidos de respaldo por si el degradado no llega a pintar.
-    bottomBtnHold: {
-        backgroundColor: '#7952FF',
-    },
-    bottomBtnReady: {
+    bottomBtnActive: {
         backgroundColor: '#7952FF',
     },
     bottomBtnLocked: {
@@ -799,21 +768,17 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: colors.borderSubtle,
     },
-    holdTriggerText: {
-        fontSize: 15,
-        fontWeight: '900',
-        color: '#FFFFFF',
-        letterSpacing: 1,
-    },
-    nextPlayerText: {
+    bottomBtnText: {
         fontSize: 16,
         fontWeight: '900',
         color: '#FFFFFF',
+        textAlign: 'center',
     },
-    nextPlayerTextLocked: {
+    bottomBtnTextLocked: {
         fontSize: 15,
         fontWeight: '800',
         color: colors.textSecondary,
+        textAlign: 'center',
     },
     modalOverlay: {
         flex: 1,
